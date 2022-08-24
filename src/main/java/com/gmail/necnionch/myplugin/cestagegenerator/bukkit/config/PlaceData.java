@@ -27,6 +27,10 @@ public class PlaceData extends BukkitConfigDriver {
 
     @Override
     public boolean onLoaded(FileConfiguration config) {
+        if (saveTask != null) {
+            saveTask.cancel();
+            saveTask = null;
+        }
         if (super.onLoaded(config)) {
             blocks.clear();
             for (String gameName : config.getKeys(false)) {
