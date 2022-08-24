@@ -93,7 +93,7 @@ public class PlaceData extends BukkitConfigDriver {
         if (saveTask != null)
             saveTask.cancel();
 
-        saveTask = plugin.getServer().getScheduler().runTaskLater(plugin, this::save, 1 * 5 * 20);
+        saveTask = plugin.getServer().getScheduler().runTaskLater(plugin, this::save, 1 * 60 * 20);
     }
 
 }
