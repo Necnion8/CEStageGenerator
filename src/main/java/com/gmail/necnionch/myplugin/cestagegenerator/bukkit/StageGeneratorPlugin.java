@@ -156,6 +156,10 @@ public final class StageGeneratorPlugin extends JavaPlugin implements Listener {
                                         .withArguments(new BlockStateArgument("blockType"))
                                         .executes(this::execRemoveBreakWhitelist))
                         )
+                        .withSubcommand(new CommandAPICommand("protectblocks")
+                                .withArguments(new BooleanArgument("protect"))
+                                .executes(this::execSetProtectBlocks)
+                        )
                 )
                 .register();
 
@@ -195,7 +199,7 @@ public final class StageGeneratorPlugin extends JavaPlugin implements Listener {
             return;
 
         GameEntry game = getGameByContains(block.getLocation());
-        if (game != null) {
+        if (game != null && game.isProtectBlocks()) {
             if (game.isBlacklistedPlace(block.getType())) {
                 event.setBuild(false);
                 event.setCancelled(true);
@@ -216,7 +220,7 @@ public final class StageGeneratorPlugin extends JavaPlugin implements Listener {
         Map<GameEntry, Set<Location>> entries = Maps.newHashMap();
         for (BlockState state : replacedBlockStates) {
             GameEntry game = getGameByContains(state.getLocation());
-            if (game != null) {
+            if (game != null && game.isProtectBlocks()) {
                 if (game.isBlacklistedPlace(state.getType())) {
                     event.setBuild(false);
                     event.setCancelled(true);
@@ -242,7 +246,7 @@ public final class StageGeneratorPlugin extends JavaPlugin implements Listener {
             return;
 
         GameEntry game = getGameByContains(block.getLocation());
-        if (game != null) {
+        if (game != null && game.isProtectBlocks()) {
             if (placeData.contains(block.getLocation())) {
                 placeData.remove(game.getGameName(), block.getLocation());
             } else {
@@ -256,7 +260,7 @@ public final class StageGeneratorPlugin extends JavaPlugin implements Listener {
     public void onBreak(BlockExplodeEvent event) {
         event.blockList().removeIf(block -> {
             GameEntry game = getGameByContains(block.getLocation());
-            if (game != null) {
+            if (game != null && game.isProtectBlocks()) {
                 if (placeData.contains(block.getLocation())) {
                     placeData.remove(game.getGameName(), block.getLocation());
                     return true;
@@ -271,7 +275,7 @@ public final class StageGeneratorPlugin extends JavaPlugin implements Listener {
     public void onBreak(EntityExplodeEvent event) {
         event.blockList().removeIf(block -> {
             GameEntry game = getGameByContains(block.getLocation());
-            if (game != null) {
+            if (game != null && game.isProtectBlocks()) {
                 if (placeData.contains(block.getLocation())) {
                     placeData.remove(game.getGameName(), block.getLocation());
                     return true;
@@ -439,7 +443,7 @@ public final class StageGeneratorPlugin extends JavaPlugin implements Listener {
         Location pos1 = new Location(null, region.getMinimumPoint().getBlockX(), region.getMinimumPoint().getBlockY(), region.getMinimumPoint().getBlockZ());
         Location pos2 = new Location(null, region.getMaximumPoint().getBlockX(), region.getMaximumPoint().getBlockY(), region.getMaximumPoint().getBlockZ());
 
-        GameEntry game = new GameEntry(gameName, world.getName(), pos1, pos2, Lists.newArrayList(), null);
+        GameEntry game = new GameEntry(gameName, world.getName(), pos1, pos2, Lists.newArrayList(), null, false);
         mainConfig.games().put(gameName, game);
         mainConfig.save();
 
@@ -474,16 +478,21 @@ public final class StageGeneratorPlugin extends JavaPlugin implements Listener {
                     .append("\n");
         }
 
-        if (!game.placeBlacklists().isEmpty()) {
-            b.append("設置禁止タイプ: ").color(ChatColor.WHITE);
-            b.append(ChatColor.YELLOW + game.placeBlacklists().stream().map(Enum::name).collect(Collectors.joining(ChatColor.GRAY + ", " + ChatColor.YELLOW)));
-            b.append("\n");
-        }
+        if (game.isProtectBlocks()) {
+            if (!game.placeBlacklists().isEmpty()) {
+                b.append("設置禁止タイプ: ").color(ChatColor.WHITE);
+                b.append(ChatColor.YELLOW + game.placeBlacklists().stream().map(Enum::name).collect(Collectors.joining(ChatColor.GRAY + ", " + ChatColor.YELLOW)));
+                b.append("\n");
+            }
 
-        if (!game.breakWhitelists().isEmpty()) {
-            b.append("破壊可能タイプ: ").color(ChatColor.WHITE);
-            b.append(ChatColor.YELLOW + game.breakWhitelists().stream().map(Enum::name).collect(Collectors.joining(ChatColor.GRAY + ", " + ChatColor.YELLOW)));
-            b.append("\n");
+            if (!game.breakWhitelists().isEmpty()) {
+                b.append("破壊可能タイプ: ").color(ChatColor.WHITE);
+                b.append(ChatColor.YELLOW + game.breakWhitelists().stream().map(Enum::name).collect(Collectors.joining(ChatColor.GRAY + ", " + ChatColor.YELLOW)));
+                b.append("\n");
+            }
+        } else {
+            b.append("ブロック保護: ").color(ChatColor.WHITE);
+            b.append("無効\n").color(ChatColor.RED);
         }
 
         int idx = 0;
@@ -900,6 +909,22 @@ public final class StageGeneratorPlugin extends JavaPlugin implements Listener {
         } else {
             sender.sendMessage(ChatColor.RED + type.name() + " は破壊可能ではありません");
         }
+        return 0;
+    }
+
+    private int execSetProtectBlocks(CommandSender sender, Object[] objects) {
+        String gameName = (String) objects[0];
+        boolean protectBlocks = (boolean) objects[1];
+
+        GameEntry game = getGameByName(gameName);
+        if (game == null) {
+            sender.sendMessage(ChatColor.RED + "存在しないゲーム名です");
+            return 0;
+        }
+
+        game.setProtectBlocks(protectBlocks);
+        mainConfig.save();
+        sender.sendMessage(ChatColor.GOLD + "ブロック保護を" + (protectBlocks ? "有効" : "無効") + "にしました");
         return 0;
     }
 

@@ -24,8 +24,9 @@ public class GameEntry {
     private @Nullable CuboidRegion cacheRegion;
     private final Set<Material> placeBlacklists;
     private final Set<Material> breakWhitelists;
+    private boolean protectBlocks;
 
-    public GameEntry(String gameName, String worldName, Location pos1, Location pos2, List<String> stageNames, @Nullable String ignoreEntityTag) {
+    public GameEntry(String gameName, String worldName, Location pos1, Location pos2, List<String> stageNames, @Nullable String ignoreEntityTag, boolean protectBlocks) {
         this.gameName = gameName;
         this.worldName = worldName;
         this.pos1 = pos1;
@@ -34,6 +35,7 @@ public class GameEntry {
         this.ignoreEntityTag = ignoreEntityTag;
         this.placeBlacklists = Sets.newHashSet();
         this.breakWhitelists = Sets.newHashSet();
+        this.protectBlocks = protectBlocks;
     }
 
     public String getGameName() {
@@ -96,6 +98,14 @@ public class GameEntry {
         return breakWhitelists;
     }
 
+    public boolean isProtectBlocks() {
+        return protectBlocks;
+    }
+
+    public void setProtectBlocks(boolean protect) {
+        this.protectBlocks = protect;
+    }
+
     public void serialize(ConfigurationSection config) {
         config.set("world", worldName);
         config.set("pos1.x", pos1.getBlockX());
@@ -108,6 +118,7 @@ public class GameEntry {
         config.set("ignore-entity-tag", ignoreEntityTag);
         config.set("blacklist-places", placeBlacklists.stream().map(Enum::name).collect(Collectors.toList()));
         config.set("whitelist-breaks", breakWhitelists.stream().map(Enum::name).collect(Collectors.toList()));
+        config.set("protect-blocks", protectBlocks);
     }
 
     public static GameEntry deserialize(String gameName, ConfigurationSection config) {
@@ -116,6 +127,7 @@ public class GameEntry {
         Location pos2 = new Location(null, config.getDouble("pos2.x"), config.getDouble("pos2.y"), config.getDouble("pos2.z"));
         List<String> stages = config.getStringList("stages");
         String ignoreEntityTag = config.getString("ignore-entity-tag");
+        boolean protectBlocks = config.getBoolean("protect-blocks");
 
         Set<Material> places = Sets.newHashSet();
         Set<Material> breaks = Sets.newHashSet();
@@ -130,7 +142,7 @@ public class GameEntry {
             } catch (IllegalArgumentException ignored) {}
         });
 
-        GameEntry game = new GameEntry(gameName, worldName, pos1, pos2, stages, ignoreEntityTag);
+        GameEntry game = new GameEntry(gameName, worldName, pos1, pos2, stages, ignoreEntityTag, protectBlocks);
         game.placeBlacklists.addAll(places);
         game.breakWhitelists.addAll(breaks);
         return game;
