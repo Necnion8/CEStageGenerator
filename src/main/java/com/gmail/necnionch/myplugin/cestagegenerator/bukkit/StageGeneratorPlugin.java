@@ -15,12 +15,14 @@ import com.sk89q.worldedit.bukkit.BukkitPlayer;
 import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
 import com.sk89q.worldedit.extent.clipboard.Clipboard;
 import com.sk89q.worldedit.extent.clipboard.io.*;
+import com.sk89q.worldedit.function.mask.BlockTypeMask;
 import com.sk89q.worldedit.function.operation.ForwardExtentCopy;
 import com.sk89q.worldedit.function.operation.Operations;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.regions.CuboidRegion;
 import com.sk89q.worldedit.regions.Region;
 import com.sk89q.worldedit.session.ClipboardHolder;
+import com.sk89q.worldedit.world.block.BlockType;
 import com.sk89q.worldedit.world.block.BlockTypes;
 import dev.jorel.commandapi.CommandAPI;
 import dev.jorel.commandapi.CommandAPICommand;
@@ -55,10 +57,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public final class StageGeneratorPlugin extends JavaPlugin implements Listener {
@@ -159,6 +158,16 @@ public final class StageGeneratorPlugin extends JavaPlugin implements Listener {
                         .withSubcommand(new CommandAPICommand("protectblocks")
                                 .withArguments(new BooleanArgument("protect"))
                                 .executes(this::execSetProtectBlocks)
+                        )
+                        .withSubcommand(new CommandAPICommand("addreplacefilter")
+                                .withArguments(gameNameArgument)
+                                .withArguments(new BlockStateArgument("blockType"))
+                                .executes(this::execAddReplaceFilter)
+                        )
+                        .withSubcommand(new CommandAPICommand("removereplacefilter")
+                                .withArguments(gameNameArgument)
+                                .withArguments(new BlockStateArgument("blockType"))
+                                .executes(this::execRemoveReplaceFilter)
                         )
                 )
                 .register();
@@ -387,6 +396,26 @@ public final class StageGeneratorPlugin extends JavaPlugin implements Listener {
         }
     }
 
+    public boolean fillAirRegionFiltered(World world, Region region, Set<Material> targetTypes) {
+        Set<BlockType> types = targetTypes.stream()
+                .map(BukkitAdapter::asBlockType)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (types.isEmpty())
+            return true;
+
+        try (EditSession session = WorldEdit.getInstance().newEditSession(BukkitAdapter.adapt(world))) {
+            BlockTypeMask mask = new BlockTypeMask(session, types);
+            //noinspection ConstantConditions
+            session.replaceBlocks(region, mask, BlockTypes.AIR.getDefaultState());
+            return true;
+
+        } catch (WorldEditException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public int killRegionEntities(World world, CuboidRegion region, @Nullable String ignoreEntityTag) {
         int kills = 0;
         for (Entity entity : world.getEntities()) {
@@ -493,6 +522,14 @@ public final class StageGeneratorPlugin extends JavaPlugin implements Listener {
         } else {
             b.append("ブロック保護: ").color(ChatColor.WHITE);
             b.append("無効\n").color(ChatColor.RED);
+        }
+
+        if (game.replaceFilters().isEmpty()) {
+            b.append("復元タイプ: ").color(ChatColor.WHITE);
+            b.append("完全復元\n").color(ChatColor.YELLOW);
+        } else {
+            b.append("復元タイプ: ").color(ChatColor.WHITE);
+            b.append("フィルターブロックのみ削除\n").color(ChatColor.YELLOW);
         }
 
         int idx = 0;
@@ -727,7 +764,14 @@ public final class StageGeneratorPlugin extends JavaPlugin implements Listener {
         }
 
         CuboidRegion region = game.getRegion();
-        boolean result = fillAirRegion(world, region);
+
+        boolean result;
+
+        if (game.replaceFilters().isEmpty()) {
+            result = fillAirRegion(world, region);
+        } else {
+            result = fillAirRegionFiltered(world, region, game.replaceFilters());
+        }
         killRegionEntities(world, region, game.getIgnoreEntityTag());
         placeData.removeAll(gameName);
 
@@ -925,6 +969,48 @@ public final class StageGeneratorPlugin extends JavaPlugin implements Listener {
         game.setProtectBlocks(protectBlocks);
         mainConfig.save();
         sender.sendMessage(ChatColor.GOLD + "ブロック保護を" + (protectBlocks ? "有効" : "無効") + "にしました");
+        return 0;
+    }
+
+    private int execAddReplaceFilter(CommandSender sender, Object[] objects) {
+        String gameName = (String) objects[0];
+        Material type = ((BlockData) objects[1]).getMaterial();
+
+        GameEntry game = getGameByName(gameName);
+        if (game == null) {
+            sender.sendMessage(ChatColor.RED + "存在しないゲーム名です");
+            return 0;
+        }
+
+        boolean result = game.replaceFilters().add(type);
+        mainConfig.save();
+
+        if (result) {
+            sender.sendMessage(ChatColor.GOLD + type.name() + " を復元フィルターに追加しました");
+        } else {
+            sender.sendMessage(ChatColor.RED + type.name() + " は既に追加されています");
+        }
+        return 0;
+    }
+
+    private int execRemoveReplaceFilter(CommandSender sender, Object[] objects) {
+        String gameName = (String) objects[0];
+        Material type = ((BlockData) objects[1]).getMaterial();
+
+        GameEntry game = getGameByName(gameName);
+        if (game == null) {
+            sender.sendMessage(ChatColor.RED + "存在しないゲーム名です");
+            return 0;
+        }
+
+        boolean result = game.replaceFilters().remove(type);
+        mainConfig.save();
+
+        if (result) {
+            sender.sendMessage(ChatColor.GOLD + type.name() + " を復元フィルターから削除しました");
+        } else {
+            sender.sendMessage(ChatColor.RED + type.name() + " は復元フィルターに追加されていません");
+        }
         return 0;
     }
 

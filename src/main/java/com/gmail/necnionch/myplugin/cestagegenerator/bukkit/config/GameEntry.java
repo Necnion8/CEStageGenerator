@@ -24,6 +24,7 @@ public class GameEntry {
     private @Nullable CuboidRegion cacheRegion;
     private final Set<Material> placeBlacklists;
     private final Set<Material> breakWhitelists;
+    private final Set<Material> replaceFilters;
     private boolean protectBlocks;
 
     public GameEntry(String gameName, String worldName, Location pos1, Location pos2, List<String> stageNames, @Nullable String ignoreEntityTag, boolean protectBlocks) {
@@ -35,6 +36,7 @@ public class GameEntry {
         this.ignoreEntityTag = ignoreEntityTag;
         this.placeBlacklists = Sets.newHashSet();
         this.breakWhitelists = Sets.newHashSet();
+        this.replaceFilters = Sets.newHashSet();
         this.protectBlocks = protectBlocks;
     }
 
@@ -98,6 +100,10 @@ public class GameEntry {
         return breakWhitelists;
     }
 
+    public Set<Material> replaceFilters() {
+        return replaceFilters;
+    }
+
     public boolean isProtectBlocks() {
         return protectBlocks;
     }
@@ -118,6 +124,7 @@ public class GameEntry {
         config.set("ignore-entity-tag", ignoreEntityTag);
         config.set("blacklist-places", placeBlacklists.stream().map(Enum::name).collect(Collectors.toList()));
         config.set("whitelist-breaks", breakWhitelists.stream().map(Enum::name).collect(Collectors.toList()));
+        config.set("replace-blocks", replaceFilters.stream().map(Enum::name).collect(Collectors.toList()));
         config.set("protect-blocks", protectBlocks);
     }
 
@@ -131,6 +138,7 @@ public class GameEntry {
 
         Set<Material> places = Sets.newHashSet();
         Set<Material> breaks = Sets.newHashSet();
+        Set<Material> filters = Sets.newHashSet();
         config.getStringList("blacklist-places").forEach(mName -> {
             try {
                 places.add(Material.valueOf(mName));
@@ -141,10 +149,16 @@ public class GameEntry {
                 breaks.add(Material.valueOf(mName));
             } catch (IllegalArgumentException ignored) {}
         });
+        config.getStringList("replace-blocks").forEach(mName -> {
+            try {
+                filters.add(Material.valueOf(mName));
+            } catch (IllegalArgumentException ignored) {}
+        });
 
         GameEntry game = new GameEntry(gameName, worldName, pos1, pos2, stages, ignoreEntityTag, protectBlocks);
         game.placeBlacklists.addAll(places);
         game.breakWhitelists.addAll(breaks);
+        game.replaceFilters.addAll(filters);
         return game;
     }
 
