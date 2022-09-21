@@ -2,5 +2,5 @@ name: CEStageGenerator
 version: '${version}'
 main: com.gmail.necnionch.myplugin.cestagegenerator.bukkit.StageGeneratorPlugin
 api-version: 1.13
-depend: [ CommandAPI, WorldEdit ]
+depend: [ CommandAPI ]
 authors: [ Necnion8 ]
