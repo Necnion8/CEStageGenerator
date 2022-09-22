@@ -10,19 +10,21 @@ import java.io.*;
 import java.util.logging.Logger;
 
 
-// version 3 (add:isExistFile(), getLogger())
+// version 4 (add: dataFile option)
 public class BukkitConfigDriver {
     private JavaPlugin plugin;
     private String fileName = "config.yml";
     private String resourceFileName = "bukkit-config.yml";
     private Logger logger;
     public FileConfiguration config = null;
+    private final boolean pluginFile;
 
     private String header = null;
 
     public BukkitConfigDriver(JavaPlugin plugin) {
         this.plugin = plugin;
         this.logger = plugin.getLogger();
+        this.pluginFile = true;
     }
 
     public BukkitConfigDriver(JavaPlugin plugin, String fileName, String resourceFileName) {
@@ -30,6 +32,15 @@ public class BukkitConfigDriver {
         this.fileName = fileName;
         this.resourceFileName = resourceFileName;
         this.logger = plugin.getLogger();
+        this.pluginFile = false;
+    }
+
+    public BukkitConfigDriver(JavaPlugin plugin, String fileName, String resourceFileName, boolean pluginFile) {
+        this.plugin = plugin;
+        this.fileName = fileName;
+        this.resourceFileName = resourceFileName;
+        this.logger = plugin.getLogger();
+        this.pluginFile = pluginFile;
     }
 
     // add: v3
@@ -39,15 +50,19 @@ public class BukkitConfigDriver {
 
     // add: v3
     public boolean isExistFile() {
-        return new File(plugin.getDataFolder(), fileName).isFile();
+        return getFilePath().isFile();
+    }
+
+    public File getFilePath() {
+        return (pluginFile) ? new File(plugin.getDataFolder(), fileName) : new File(fileName);
     }
 
     public boolean load() {
         try {
-            if (!plugin.getDataFolder().exists())
-                plugin.getDataFolder().mkdir();
+            if (!getFilePath().getParentFile().exists())
+                getFilePath().getParentFile().mkdirs();
 
-            File file = new File(plugin.getDataFolder(), fileName);
+            File file = getFilePath();
 
             if (!file.exists()) {
                 file.createNewFile();
@@ -71,10 +86,10 @@ public class BukkitConfigDriver {
     }
 
     public boolean save() {
-        if (!plugin.getDataFolder().exists())
-            plugin.getDataFolder().mkdir();
+        if (!getFilePath().getParentFile().exists())
+            getFilePath().getParentFile().mkdirs();
 
-        File file = new File(plugin.getDataFolder(), fileName);
+        File file = getFilePath();
         if (config == null) return false;
 
         try (OutputStreamWriter stream = new OutputStreamWriter(new FileOutputStream(file), Charsets.UTF_8)) {
