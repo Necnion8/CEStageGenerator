@@ -49,18 +49,41 @@ public class StageListPanel extends Panel {
 
         for (int idx = 0; idx < Math.min(getSize() - index, game.stageNames().size()); idx++) {
             String stageName = game.stageNames().get(idx);
-            slots[index+idx] = PanelItem.createItem(Material.GRASS_BLOCK, ChatColor.YELLOW + stageName, Lists.newArrayList(ChatColor.GRAY + "クリックでロード"))
+            slots[index+idx] = PanelItem.createItem(Material.GRASS_BLOCK, ChatColor.YELLOW + stageName, Lists.newArrayList(
+                    ChatColor.GRAY + "左クリック: ワールドをロード",
+                    ChatColor.GRAY + "S+右クリック: ワールドを完全削除"
+                    ))
                     .setClickListener((e, p) -> {
-                        if (game.getWorld() != null) {
-                            getPlayer().sendMessage(ChatColor.RED + "他のステージがロードされているため、ステージをロードできません");
-                        } else if (game.stageNames().contains(stageName)) {
-                            destroy(true);
-                            loadStage(stageName);
+                        if (ClickType.SHIFT_RIGHT.equals(e.getClick())) {
+                            new DeleteConfirm(stageName).open(this);
+                        } else if (ClickType.LEFT.equals(e.getClick())) {
+                            if (game.getWorld() != null) {
+                                getPlayer().sendMessage(ChatColor.RED + "他のステージがロードされているため、ステージをロードできません");
+                            } else if (game.stageNames().contains(stageName)) {
+                                destroy(true);
+                                loadStage(stageName);
+                            }
                         }
                     });
         }
 
         return slots;
+    }
+
+    private void deleteStage(String name) {
+        game.stageNames().remove(name);
+        game.saveSettings();
+        getPlayer().sendMessage(ChatColor.GOLD + "ステージ " + name + " を削除しました");
+        try {
+            game.deleteWorldBackup(name).whenComplete((v, e) -> {
+                if (e != null) {
+                    getPlayer().sendMessage(ChatColor.RED + "バックアップファイルを処理できませんでした");
+                }
+            });
+        } catch (IllegalStateException ex) {
+            ex.printStackTrace();
+            getPlayer().sendMessage(ChatColor.RED + "バックアップファイルを削除できませんでした");
+        }
     }
 
     private void loadStage(String name) {
@@ -172,4 +195,29 @@ public class StageListPanel extends Panel {
                     .open(getPlayer());
         }
     }
+
+    private class DeleteConfirm extends Panel {
+
+        private final String stageName;
+
+        public DeleteConfirm(String stageName) {
+            super(StageListPanel.this.getPlayer(), 27, ChatColor.DARK_RED + "ステージ " + stageName + " の削除");
+            this.stageName = stageName;
+        }
+
+        @Override
+        public PanelItem[] build() {
+            PanelItem[] slots = new PanelItem[getSize()];
+
+            slots[9+4-1] = PanelItem.createItem(Material.RED_STAINED_GLASS_PANE, ChatColor.WHITE + "キャンセル")
+                    .setClickListener((e, p) -> StageListPanel.this.open());
+            slots[9+6-1] = PanelItem.createItem(Material.LIME_STAINED_GLASS_PANE, ChatColor.RED + "削除")
+                    .setClickListener((e, p) -> {
+                        deleteStage(stageName);
+                        StageListPanel.this.open();
+                    });
+            return slots;
+        }
+    }
+
 }

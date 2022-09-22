@@ -127,6 +127,10 @@ public class Game {
         return manager.restoreWorld(this, stageName);
     }
 
+    public CompletableFuture<Void> deleteWorldBackup(String stageName) throws IllegalStateException {
+        return manager.deleteWorldBackup(this, stageName);
+    }
+
     public void saveWorld() {
         if (world != null)
             manager.saveWorld(this, world, Objects.requireNonNull(currentStageConfig).getStageName());

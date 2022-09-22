@@ -384,6 +384,34 @@ public class GameManager implements Listener {
         return f;
     }
 
+    CompletableFuture<Void> deleteWorldBackup(Game game, String stageName) throws IllegalStateException {
+        File backupFolder = getBackupWorldFolderFile(game, stageName);
+        if (!backupFolder.exists())
+            throw new IllegalStateException("Not exists");
+
+        if (processingFiles.contains(backupFolder.toString()))
+            throw new IllegalStateException("Already processing directory");
+
+        processingFiles.add(backupFolder.toString());
+
+        CompletableFuture<Void> f = new CompletableFuture<>();
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                FileUtils.deleteDirectory(backupFolder);
+            } catch (IOException e) {
+                getLogger().severe("Failed to delete backup '" + backupFolder + "': " + e.getMessage());
+                plugin.getServer().getScheduler().runTask(plugin, () -> f.completeExceptionally(e));
+                return;
+            } finally {
+                processingFiles.remove(backupFolder.toString());
+            }
+            getLogger().info("Deleted stage backup: " + backupFolder);
+            plugin.getServer().getScheduler().runTask(plugin, () -> f.complete(null));
+        });
+
+        return f;
+    }
+
     void saveWorld(Game game, World world, String stageName) {
         if (!world.equals(game.getWorld()))
             throw new IllegalArgumentException("Not game world");
