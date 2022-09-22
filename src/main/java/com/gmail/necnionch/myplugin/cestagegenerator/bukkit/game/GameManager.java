@@ -238,7 +238,7 @@ public class GameManager implements Listener {
                 getLogger().info("World Loaded: " + world.getName());
 
                 world.setKeepSpawnInMemory(false);
-                world.setAutoSave(false);
+//                world.setAutoSave(false);
                 world.setSpawnLocation(0, 64, 0);
 
                 if (!exists) {
