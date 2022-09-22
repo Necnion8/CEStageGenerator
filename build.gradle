@@ -19,6 +19,10 @@ repositories {
         name = 'sonatype'
         url = 'https://oss.sonatype.org/content/groups/public/'
     }
+    maven {
+        name = 'codemc-snapshots'
+        url = 'https://repo.codemc.io/repository/maven-snapshots'
+    }
 }
 
 dependencies {
@@ -30,6 +34,9 @@ dependencies {
     // https://mvnrepository.com/artifact/commons-io/commons-io
     implementation group: 'commons-io', name: 'commons-io', version: '2.11.0'
     collectJars group: 'commons-io', name: 'commons-io', version: '2.11.0'
+
+    implementation 'net.wesjd:anvilgui:1.5.3-SNAPSHOT'
+    collectJars 'net.wesjd:anvilgui:1.5.3-SNAPSHOT'
 
 }
 

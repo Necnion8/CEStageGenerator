@@ -4,5 +4,5 @@ main: com.gmail.necnionch.myplugin.cestagegenerator.bukkit.StageGeneratorPlugin
 api-version: 1.13
 authors: [ Necnion8 ]
 depend: [ CommandAPI ]
-softdepend: [ Citizens ]
+softdepend: [ Citizens, Multiverse-Core ]
 load: STARTUP

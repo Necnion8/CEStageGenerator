@@ -6,6 +6,7 @@ import com.google.common.collect.Maps;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.Collections;
 import java.util.Map;
 
 public class GameConfig extends BukkitConfigDriver {
@@ -21,7 +22,9 @@ public class GameConfig extends BukkitConfigDriver {
 
     public Map<String, GameSetting> loadGames() {
         fails = null;
-        load();
+        if (!load())
+            return Collections.emptyMap();
+
         Map<String, GameSetting> games = Maps.newHashMap();
 
         for (String gameName : config.getKeys(false)) {

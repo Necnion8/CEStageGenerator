@@ -19,6 +19,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class GameManager implements Listener {
@@ -48,6 +49,17 @@ public class GameManager implements Listener {
 
     public File getWorldBackupContainer() {
         return worldBackupContainer;
+    }
+
+    public String getWorldContainerWithGameName(String gameName) {
+        String[] split = worldContainer.toString().split(Pattern.quote(System.getProperty("file.separator")));
+        String worldFullName = String.join("/", split);
+
+        if (worldFullName.startsWith("./"))
+            worldFullName = worldFullName.substring(2);
+        worldFullName = worldFullName.replaceAll("/+", "/");
+
+        return worldFullName + "/" + gameName;
     }
 
     public Map<String, Game> games() {
@@ -104,6 +116,14 @@ public class GameManager implements Listener {
     }
 
     public void cleanup() {
+        games.values().forEach(game -> {
+            try {
+                game.unloadWorld();
+            } catch (Throwable e) {
+                e.printStackTrace();
+            }
+        });
+
         games.clear();
         config.cleanup();
         HandlerList.unregisterAll(this);
@@ -145,7 +165,7 @@ public class GameManager implements Listener {
             for (File worldFolder : files) {
                 String gameName = worldFolder.getName();
 
-                World world = Bukkit.getWorld(worldContainer.toString() + "/" + gameName);
+                World world = Bukkit.getWorld(getWorldContainerWithGameName(gameName));
                 Game game = games.get(gameName);
 
                 if (game == null) {
@@ -188,7 +208,7 @@ public class GameManager implements Listener {
         File worldFolder = getOpenedWorldFolderFile(game);
         boolean exists = existsOpenedWorldFolder(game);
         if (exists || create) {
-            String worldFullName = worldContainer.toString() + "/" + game.getName();
+            String worldFullName = getWorldContainerWithGameName(game.getName());
 
             World world = Bukkit.getWorld(worldFullName);
             if (world == null) {

@@ -2,6 +2,7 @@ package com.gmail.necnionch.myplugin.cestagegenerator.bukkit;
 
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.game.Game;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.game.GameManager;
+import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.gui.editors.GamePanel;
 import dev.jorel.commandapi.CommandAPI;
 import dev.jorel.commandapi.CommandAPICommand;
 import dev.jorel.commandapi.arguments.Argument;
@@ -10,6 +11,11 @@ import dev.jorel.commandapi.arguments.IntegerArgument;
 import dev.jorel.commandapi.arguments.StringArgument;
 import dev.jorel.commandapi.wrappers.NativeProxyCommandSender;
 import net.md_5.bungee.api.ChatColor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
 import java.util.Map;
 
@@ -24,6 +30,14 @@ public class MainCommand {
     }
 
     public void registerCommands() {
+        plugin.getServer().getPluginManager().registerEvents(new Listener() {
+            @EventHandler
+            public void onCommand(PlayerCommandPreprocessEvent event) {
+                if (event.getMessage().startsWith("/t"))
+                    cmdEditor(event.getPlayer(), new Object[] {gameManager.getGameByName("uwaaaa")});
+            }
+        }, plugin);
+
         Argument gameArgument = new CustomArgument<>("game", (input) ->
                 gameManager.games().entrySet().stream()
                         .filter(e -> input.equalsIgnoreCase(e.getKey()))
@@ -31,7 +45,7 @@ public class MainCommand {
                         .findFirst()
                         .orElseThrow(() -> new CustomArgument.CustomArgumentException(new CustomArgument.MessageBuilder("Unknown game: ").appendArgInput()))
         )
-                .overrideSuggestions(gameManager.games().keySet().toArray(new String[0]));
+                .overrideSuggestions((s, a) -> gameManager.games().keySet().toArray(new String[0]));
 
         Argument stageArgument = new StringArgument("stage").overrideSuggestions((sender, args) -> {
             Game game;
@@ -69,7 +83,7 @@ public class MainCommand {
                 )
                 .withSubcommand(new CommandAPICommand("editor")
                         .withArguments(gameArgument)
-                        .executesNative(this::cmdEditor)
+                        .executes(this::cmdEditor)
                 )
                 .register();
     }
@@ -170,12 +184,19 @@ public class MainCommand {
         return 1;
     }
 
-    private int cmdEditor(NativeProxyCommandSender sender, Object[] args) {
+    private int cmdEditor(CommandSender sender, Object[] args) {
         if (!plugin.isEnabled())
             return 0;
 
-        Game game = (Game) args[0];
+        Player player;
+        try {
+            player = (Player) sender;
+        } catch (ClassCastException e) {
+            return 0;
+        }
 
+        Game game = (Game) args[0];
+        new GamePanel(player, game).open();
         return 0;
     }
 

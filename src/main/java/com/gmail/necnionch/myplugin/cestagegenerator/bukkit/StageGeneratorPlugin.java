@@ -6,7 +6,7 @@ import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.hooks.CitizensBridge
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
-import org.bukkit.event.world.WorldInitEvent;
+import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -29,11 +29,12 @@ public final class StageGeneratorPlugin extends JavaPlugin {
         AtomicBoolean isLoaded = new AtomicBoolean();
         getServer().getPluginManager().registerEvents(new Listener() {
             @EventHandler
-            public void onLoad(WorldInitEvent event) {
-                getLogger().warning("first world init");
+            public void onEnable(PluginEnableEvent event) {
+                if (!event.getPlugin().getName().equals("Multiverse-Core"))
+                    return;
+
                 HandlerList.unregisterAll(this);  // only ones
 
-                getLogger().info("on load " + isLoaded.get());
                 if (!isLoaded.get()) {
                     isLoaded.set(true);
                     // delay load (load: STARTUP)
@@ -43,7 +44,6 @@ public final class StageGeneratorPlugin extends JavaPlugin {
         }, this);
 
         getServer().getScheduler().runTask(this, () -> {
-            getLogger().info("on tick " + isLoaded.get());
             if (!isLoaded.get()) {
                 isLoaded.set(true);
                 gameManager.loadOpenedWorlds();

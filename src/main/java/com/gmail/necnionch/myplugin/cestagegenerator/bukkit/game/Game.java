@@ -41,6 +41,10 @@ public class Game {
         this.setting = setting != null ? setting : new GameSetting();
     }
 
+    public void saveSettings() {
+        manager.save();
+    }
+
     public List<String> stageNames() {
         return setting.stageNames();
     }

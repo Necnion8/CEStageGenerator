@@ -32,7 +32,7 @@ public class BukkitConfigDriver {
         this.fileName = fileName;
         this.resourceFileName = resourceFileName;
         this.logger = plugin.getLogger();
-        this.pluginFile = false;
+        this.pluginFile = true;
     }
 
     public BukkitConfigDriver(JavaPlugin plugin, String fileName, String resourceFileName, boolean pluginFile) {
