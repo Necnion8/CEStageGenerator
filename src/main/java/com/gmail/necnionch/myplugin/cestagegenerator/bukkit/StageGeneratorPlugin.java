@@ -1,5 +1,6 @@
 package com.gmail.necnionch.myplugin.cestagegenerator.bukkit;
 
+import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.commands.MainCommand;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.game.GameManager;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.gui.Panel;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.hooks.CitizensBridge;

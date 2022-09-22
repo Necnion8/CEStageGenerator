@@ -1,8 +1,10 @@
-package com.gmail.necnionch.myplugin.cestagegenerator.bukkit;
+package com.gmail.necnionch.myplugin.cestagegenerator.bukkit.commands;
 
+import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.StageGeneratorPlugin;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.game.Game;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.game.GameManager;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.gui.editors.GameEditPanel;
+import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.gui.editors.StageEditPanel;
 import dev.jorel.commandapi.CommandAPI;
 import dev.jorel.commandapi.CommandAPICommand;
 import dev.jorel.commandapi.arguments.Argument;
@@ -196,7 +198,12 @@ public class MainCommand {
         }
 
         Game game = (Game) args[0];
-        new GameEditPanel(player, game).open();
+        GameEditPanel editPanel = new GameEditPanel(player, game);
+        if (game.getWorld() != null && game.getCurrentStageConfig() != null) {
+            new StageEditPanel(player, game, game.getWorld(), game.getCurrentStageConfig().getStageName()).open(editPanel);
+        } else {
+            editPanel.open();
+        }
         return 0;
     }
 
