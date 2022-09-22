@@ -1,11 +1,13 @@
 package com.gmail.necnionch.myplugin.cestagegenerator.bukkit.game;
 
+import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.config.StageConfig;
 import org.bukkit.World;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
@@ -15,7 +17,8 @@ public class Game {
     private final GameManager manager;
     private GameSetting setting;
     private @Nullable World world;
-    private @Nullable String editingName;
+    private @Nullable StageConfig currentStageConfig;
+    private boolean editing;
 
     public Game(GameManager manager, String name, @Nullable GameSetting setting) {
         name = name.toLowerCase(Locale.ROOT);
@@ -54,8 +57,18 @@ public class Game {
         return world;
     }
 
+    public @Nullable StageConfig getCurrentStageConfig() {
+        return currentStageConfig;
+    }
+
     public void setWorld(@Nullable World world) {
         this.world = world;
+        if (this.world != null) {
+            this.currentStageConfig = new StageConfig(manager.getPlugin(), world.getWorldFolder());
+            this.currentStageConfig.load();
+        } else {
+            this.currentStageConfig = null;
+        }
     }
 
     public @Nullable World loadWorld(boolean create) throws IllegalStateException {
@@ -63,25 +76,26 @@ public class Game {
             unloadWorld();
 
         this.world = manager.loadWorld(this, create);
+        if (this.world != null) {
+            this.currentStageConfig = new StageConfig(manager.getPlugin(), world.getWorldFolder());
+            this.currentStageConfig.load();
+        }
         return world;
     }
 
     public void unloadWorld() {
         manager.unloadWorld(this);
-        this.editingName = null;
+        this.editing = false;
         this.world = null;
+        this.currentStageConfig = null;
     }
 
-    public @Nullable String getEditingStageName() {
-        return editingName;
-    }
-
-    public void setEditingStageName(@Nullable String stageName) {
-        this.editingName = stageName;
+    public void setWorldEditing(boolean editing) {
+        this.editing = editing;
     }
 
     public boolean isWorldEditing() {
-        return editingName != null;
+        return editing;
     }
 
     public File getOpenedWorldFolderFile() {
@@ -115,7 +129,7 @@ public class Game {
 
     public void saveWorld() {
         if (world != null)
-            manager.saveWorld(this, world);
+            manager.saveWorld(this, world, Objects.requireNonNull(currentStageConfig).getStageName());
     }
 
     public void restoreNPCs() {

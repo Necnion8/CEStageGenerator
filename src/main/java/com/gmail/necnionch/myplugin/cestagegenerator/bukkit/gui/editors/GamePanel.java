@@ -40,7 +40,7 @@ public class GamePanel extends Panel {
         PanelItem[] slots = new PanelItem[getSize()];
 
         GameSetting.MaterialList breakList = getSetting().getBreakWhitelists();
-        slots[9*1+2-1] = PanelItem.createItem(Material.AIR, "").setItemBuilder((p) -> {
+        slots[9+2-1] = PanelItem.createItem(Material.AIR, "").setItemBuilder((p) -> {
             String label = ChatColor.GOLD + "破壊可能ブロック " + ChatColor.GRAY + "- ";
 
             if (breakList.isAll()) {
@@ -59,39 +59,12 @@ public class GamePanel extends Panel {
                 new MaterialSelectPanel(p, breakList, ChatColor.DARK_RED + "破壊可能ブロック").open(this);
 
             } else if (ClickType.RIGHT.equals(e.getClick())) {
-                new AnvilGUI.Builder()
-                        .plugin(OWNER)
-                        .title("ブロックを検索")
-                        .text("")
-                        .onLeftInputClick((p2) -> {
-                            this.open();
-                        })
-                        .onComplete((p2, text) -> {
-                            Pattern rex;
-                            try {
-                                rex = Pattern.compile(text);
-                            } catch (PatternSyntaxException ignored) {
-                                rex = null;
-                            }
-                            List<Material> finds = findMaterials(rex, text);
-
-                            Bukkit.getScheduler().runTaskLater(OWNER, () -> {
-                                if (finds.isEmpty()) {
-                                    this.open();
-                                } else {
-                                    new MaterialAddSelectPanel(p, finds, breakList)
-                                            .open(new MaterialSelectPanel(p, breakList, ChatColor.DARK_RED + "破壊可能ブロック").setBackPanel(this));
-                                }
-                            }, 2);
-
-                            return AnvilGUI.Response.text("");
-                        })
-                        .open(p);
+                new MaterialSelector(ChatColor.DARK_RED + "破壊可能ブロック", breakList).open();
             }
         });
 
         GameSetting.MaterialList placeList = getSetting().getPlaceBlacklists();
-        slots[9*1+3-1] = PanelItem.createItem(Material.AIR, "").setItemBuilder((p) -> {
+        slots[9+3-1] = PanelItem.createItem(Material.AIR, "").setItemBuilder((p) -> {
             String label = ChatColor.GOLD + "設置禁止ブロック " + ChatColor.GRAY + "- ";
 
             if (placeList.isAll()) {
@@ -110,41 +83,14 @@ public class GamePanel extends Panel {
                 new MaterialSelectPanel(p, placeList, ChatColor.DARK_RED + "設置禁止ブロック").open(this);
 
             } else if (ClickType.RIGHT.equals(e.getClick())) {
-                new AnvilGUI.Builder()
-                        .plugin(OWNER)
-                        .title("ブロックを検索")
-                        .text("")
-                        .onLeftInputClick((p2) -> {
-                            this.open();
-                        })
-                        .onComplete((p2, text) -> {
-                            Pattern rex;
-                            try {
-                                rex = Pattern.compile(text);
-                            } catch (PatternSyntaxException ignored) {
-                                rex = null;
-                            }
-                            List<Material> finds = findMaterials(rex, text);
-
-                            Bukkit.getScheduler().runTaskLater(OWNER, () -> {
-                                if (finds.isEmpty()) {
-                                    this.open();
-                                } else {
-                                    new MaterialAddSelectPanel(p, finds, placeList)
-                                            .open(new MaterialSelectPanel(p, placeList, ChatColor.DARK_RED + "設置禁止ブロック").setBackPanel(this));
-                                }
-                            }, 2);
-
-                            return AnvilGUI.Response.text("");
-                        })
-                        .open(p);
+                new MaterialSelector(ChatColor.DARK_RED + "設置禁止ブロック", placeList).open();
             }
         });
 
-        slots[9*1+5-1] = PanelItem.createItem(Material.AIR, "").setItemBuilder((p) -> {
-            if (game.isWorldEditing()) {
+        slots[9+5-1] = PanelItem.createItem(Material.AIR, "").setItemBuilder((p) -> {
+            if (game.getCurrentStageConfig() != null) {
                 return PanelItem.createItem(
-                        Material.GOLDEN_SHOVEL, ChatColor.YELLOW + "ステージ編集: " + ChatColor.GOLD + game.getEditingStageName()
+                        Material.GOLDEN_SHOVEL, ChatColor.YELLOW + "ステージ編集: " + ChatColor.GOLD + game.getCurrentStageConfig().getStageName()
                 ).getItemStack();
             } else {
                 return PanelItem.createItem(
@@ -153,10 +99,11 @@ public class GamePanel extends Panel {
             }
         }).setClickListener((e, p) -> {
             if (ClickType.LEFT.equals(e.getClick())) {
-                if (game.isWorldEditing()) {
+                if (game.getCurrentStageConfig() != null) {
                     // open stage edit
                 } else {
                     // open list
+                    new StageListPanel(getPlayer(), game).open(this);
                 }
             }
         });
@@ -186,4 +133,46 @@ public class GamePanel extends Panel {
         }
     }
 
+
+    private class MaterialSelector {
+
+        private final String title;
+        private final GameSetting.MaterialList materialList;
+        private List<Material> finds;
+
+        public MaterialSelector(String title, GameSetting.MaterialList materialList) {
+            this.title = title;
+            this.materialList = materialList;
+        }
+
+        public void open() {
+            new AnvilGUI.Builder()
+                    .plugin(OWNER)
+                    .title("ブロックを検索")
+                    .text("")
+                    .onClose((p2) -> {
+                        Bukkit.getScheduler().runTask(OWNER, () -> {
+                            if (finds == null || finds.isEmpty()) {
+                                getPlayer().sendMessage(ChatColor.RED + "指定されたIDにマッチするブロックが見つかりませんでした");
+                                GamePanel.this.open();
+                            } else {
+                                new MaterialAddSelectPanel(getPlayer(), finds, materialList)
+                                        .open(new MaterialSelectPanel(getPlayer(), materialList, title).setBackPanel(GamePanel.this));
+                            }
+                        });
+                    })
+                    .onComplete((p2, text) -> {
+                        Pattern rex;
+                        try {
+                            rex = Pattern.compile(text);
+                        } catch (PatternSyntaxException ignored) {
+                            rex = null;
+                        }
+                        finds = findMaterials(rex, text);
+                        return AnvilGUI.Response.close();
+                    })
+                    .open(getPlayer());
+
+        }
+    }
 }

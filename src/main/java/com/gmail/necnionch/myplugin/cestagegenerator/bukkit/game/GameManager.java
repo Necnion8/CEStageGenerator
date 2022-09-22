@@ -39,6 +39,10 @@ public class GameManager implements Listener {
         this.worldBackupContainer = new File(plugin.getDataFolder(), "stage_backups");
     }
 
+    public StageGeneratorPlugin getPlugin() {
+        return plugin;
+    }
+
     public Logger getLogger() {
         return plugin.getLogger();
     }
@@ -182,7 +186,10 @@ public class GameManager implements Listener {
                 if (world != null) {  // loaded
                     game.setWorld(world);
                 } else {  // start load
-                    game.loadWorld(false);
+                    StageConfig stageConfig = new StageConfig(plugin, worldFolder);
+                    if (stageConfig.isExistFile() && stageConfig.load() && !stageConfig.getStageName().isEmpty()) {
+                        game.loadWorld(false);
+                    }
                 }
             }
         });
@@ -360,29 +367,25 @@ public class GameManager implements Listener {
         return f;
     }
 
-    void saveWorld(Game game, World world) {
+    void saveWorld(Game game, World world, String stageName) {
         if (!world.equals(game.getWorld()))
             throw new IllegalArgumentException("Not game world");
 
         world.save();
-        saveNPCToWorld(world);
+        saveStageConfig(world, stageName);
     }
 
-    private void saveNPCToWorld(World world) {
-        if (!citizens.isAvailable())
-            return;
-
+    private void saveStageConfig(World world, String stageName) {
         StageConfig config = new StageConfig(plugin, world.getWorldFolder());
-        long count = world.getEntities().stream()
-                .map(entity -> citizens.getNPCRegistry().getNPC(entity))
-                .filter(Objects::nonNull)
-                .peek(config::addNPC)
-                .count();
-        if (count >= 1) {
-            config.save();
-        } else if (config.getFilePath().isFile()) {
-            config.getFilePath().delete();
+        config.setStageName(stageName);
+
+        if (citizens.isAvailable()) {
+            world.getEntities().stream()
+                    .map(entity -> citizens.getNPCRegistry().getNPC(entity))
+                    .filter(Objects::nonNull)
+                    .forEach(config::addNPC);
         }
+        config.save();
     }
 
     void restoreNPCs(World world) {

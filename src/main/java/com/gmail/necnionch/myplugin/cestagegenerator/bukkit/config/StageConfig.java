@@ -15,6 +15,7 @@ import java.util.Optional;
 import java.util.Set;
 
 public class StageConfig extends BukkitConfigDriver {
+
     public StageConfig(JavaPlugin plugin, File worldFolder) {
         super(plugin, new File(worldFolder, "stage.yml").toString(), "empty.yml", false);
     }
@@ -29,7 +30,13 @@ public class StageConfig extends BukkitConfigDriver {
         config.set("npc." + npc.getId() + ".pitch", loc.getPitch());
     }
 
+    public void setStageName(String name) {
+        config = Optional.ofNullable(config).orElseGet(YamlConfiguration::new);
+        config.set("stage-name", name);
+    }
+
     public void restoreNPCs(NPCRegistry registry, World world) {
+        config = Optional.ofNullable(config).orElseGet(YamlConfiguration::new);
         ConfigurationSection npcSection = config.getConfigurationSection("npc");
         if (npcSection == null)
             return;
@@ -64,6 +71,11 @@ public class StageConfig extends BukkitConfigDriver {
             }
         }
 
+    }
+
+    public String getStageName() {
+        config = Optional.ofNullable(config).orElseGet(YamlConfiguration::new);
+        return config.getString("stage-name", "");
     }
 
 }
