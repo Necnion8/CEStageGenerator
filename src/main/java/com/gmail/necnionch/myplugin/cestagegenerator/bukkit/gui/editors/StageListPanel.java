@@ -5,10 +5,7 @@ import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.gui.Panel;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.gui.PanelItem;
 import com.google.common.collect.Lists;
 import net.wesjd.anvilgui.AnvilGUI;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Material;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 
@@ -83,8 +80,17 @@ public class StageListPanel extends Panel {
                                 return;
                             }
                             game.setWorldEditing(true);
-                            getPlayer().teleport(world.getSpawnLocation().add(.5, 0, .5));
+                            Location loc = world.getSpawnLocation();
+                            getPlayer().teleport(loc.add(.5, 0, .5));
                             getPlayer().sendMessage(ChatColor.WHITE + "完了 (" + (System.currentTimeMillis() - startAt) + "ms)");
+
+                            if (Material.AIR.equals(loc.add(0, -1, 0).getBlock().getType())) {
+                                if (GameMode.SURVIVAL.equals(getPlayer().getGameMode()))
+                                    getPlayer().setGameMode(GameMode.CREATIVE);
+                                getPlayer().setFlying(true);
+                                getPlayer().setAllowFlight(true);
+                            }
+
                         }
                     });
                 } catch (Throwable ex) {
@@ -116,8 +122,17 @@ public class StageListPanel extends Panel {
 
                 game.backupWorld(name.toLowerCase(Locale.ROOT));
 
-                getPlayer().teleport(world.getSpawnLocation().add(.5, 0, .5));
+                Location loc = world.getSpawnLocation();
+                getPlayer().teleport(loc.add(.5, 0, .5));
                 getPlayer().sendMessage(ChatColor.WHITE + "完了 (" + (System.currentTimeMillis() - startAt) + "ms)");
+
+                if (Material.AIR.equals(loc.add(0, -1, 0).getBlock().getType())) {
+                    if (GameMode.SURVIVAL.equals(getPlayer().getGameMode()))
+                        getPlayer().setGameMode(GameMode.CREATIVE);
+                    getPlayer().setFlying(true);
+                    getPlayer().setAllowFlight(true);
+                }
+
             });
         } catch (IllegalStateException e) {
             e.printStackTrace();

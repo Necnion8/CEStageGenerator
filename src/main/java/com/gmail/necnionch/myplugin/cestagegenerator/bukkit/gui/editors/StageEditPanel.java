@@ -69,10 +69,11 @@ public class StageEditPanel extends Panel {
                         // teleport
                         Location loc = world.getSpawnLocation();
                         getPlayer().teleport(loc.clone().add(.5, 0, .5));
-                        if (!loc.add(0, -1, 0).getBlock().getType().isBlock()) {
+                        if (Material.AIR.equals(loc.add(0, -1, 0).getBlock().getType())) {
                             if (GameMode.SURVIVAL.equals(getPlayer().getGameMode()))
                                 getPlayer().setGameMode(GameMode.CREATIVE);
                             getPlayer().setFlying(true);
+                            getPlayer().setAllowFlight(true);
                         }
 
                     } else if (ClickType.SHIFT_LEFT.equals(e.getClick())) {
