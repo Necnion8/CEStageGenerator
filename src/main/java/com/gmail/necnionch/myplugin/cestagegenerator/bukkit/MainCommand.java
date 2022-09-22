@@ -2,7 +2,7 @@ package com.gmail.necnionch.myplugin.cestagegenerator.bukkit;
 
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.game.Game;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.game.GameManager;
-import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.gui.editors.GamePanel;
+import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.gui.editors.GameEditPanel;
 import dev.jorel.commandapi.CommandAPI;
 import dev.jorel.commandapi.CommandAPICommand;
 import dev.jorel.commandapi.arguments.Argument;
@@ -196,7 +196,7 @@ public class MainCommand {
         }
 
         Game game = (Game) args[0];
-        new GamePanel(player, game).open();
+        new GameEditPanel(player, game).open();
         return 0;
     }
 

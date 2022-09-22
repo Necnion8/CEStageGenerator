@@ -21,11 +21,11 @@ import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class GamePanel extends Panel {
+public class GameEditPanel extends Panel {
 
     private final Game game;
 
-    public GamePanel(Player player, Game game) {
+    public GameEditPanel(Player player, Game game) {
         super(player, 27, "ゲーム: " + game.getName());
         this.game = game;
     }
@@ -101,6 +101,8 @@ public class GamePanel extends Panel {
             if (ClickType.LEFT.equals(e.getClick())) {
                 if (game.getCurrentStageConfig() != null) {
                     // open stage edit
+                    if (game.getWorld() != null)
+                        new StageEditPanel(getPlayer(), game, game.getWorld(), game.getCurrentStageConfig().getStageName()).open(this);
                 } else {
                     // open list
                     new StageListPanel(getPlayer(), game).open(this);
@@ -154,10 +156,10 @@ public class GamePanel extends Panel {
                         Bukkit.getScheduler().runTask(OWNER, () -> {
                             if (finds == null || finds.isEmpty()) {
                                 getPlayer().sendMessage(ChatColor.RED + "指定されたIDにマッチするブロックが見つかりませんでした");
-                                GamePanel.this.open();
+                                GameEditPanel.this.open();
                             } else {
                                 new MaterialAddSelectPanel(getPlayer(), finds, materialList)
-                                        .open(new MaterialSelectPanel(getPlayer(), materialList, title).setBackPanel(GamePanel.this));
+                                        .open(new MaterialSelectPanel(getPlayer(), materialList, title).setBackPanel(GameEditPanel.this));
                             }
                         });
                     })

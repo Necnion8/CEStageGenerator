@@ -26,6 +26,18 @@ public final class StageGeneratorPlugin extends JavaPlugin {
         Panel.OWNER = this;
         mainCommand.registerCommands();
 
+        getServer().getPluginManager().registerEvents(new Listener() {
+            @EventHandler
+            public void onEnable(PluginEnableEvent event) {
+                if (!event.getPlugin().getName().equals("Citizens"))
+                    return;
+
+                HandlerList.unregisterAll(this);  // only ones
+                if (citizensBridge.hook(getServer().getPluginManager().getPlugin("Citizens")))
+                    getLogger().info("Hooked Citizens");
+            }
+        }, this);
+
         AtomicBoolean isLoaded = new AtomicBoolean();
         getServer().getPluginManager().registerEvents(new Listener() {
             @EventHandler

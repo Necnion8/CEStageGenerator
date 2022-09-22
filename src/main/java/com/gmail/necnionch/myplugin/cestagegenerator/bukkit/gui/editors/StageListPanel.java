@@ -5,6 +5,7 @@ import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.gui.Panel;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.gui.PanelItem;
 import com.google.common.collect.Lists;
 import net.wesjd.anvilgui.AnvilGUI;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -71,20 +72,25 @@ public class StageListPanel extends Panel {
 
         try {
             game.cleanOpenedWorld().whenComplete((v, e) -> {
-                game.restoreWorld(name).whenComplete((v2, e2) -> {
-                    if (e2 != null) {
-                        getPlayer().sendMessage(ChatColor.RED + "ファイルを処理できませんでした");
-                    } else {
-                        World world = game.loadWorld(false);
-                        if (world == null) {
-                            getPlayer().sendMessage(ChatColor.RED + "ワールドをロードできませんでした");
-                            return;
+                try {
+                    game.restoreWorld(name).whenComplete((v2, e2) -> {
+                        if (e2 != null) {
+                            getPlayer().sendMessage(ChatColor.RED + "ファイルを処理できませんでした");
+                        } else {
+                            World world = game.loadWorld(false);
+                            if (world == null) {
+                                getPlayer().sendMessage(ChatColor.RED + "ワールドをロードできませんでした");
+                                return;
+                            }
+                            game.setWorldEditing(true);
+                            getPlayer().teleport(world.getSpawnLocation().add(.5, 0, .5));
+                            getPlayer().sendMessage(ChatColor.WHITE + "完了 (" + (System.currentTimeMillis() - startAt) + "ms)");
                         }
-                        game.setWorldEditing(true);
-                        getPlayer().teleport(world.getSpawnLocation().add(.5, 0, .5));
-                        getPlayer().sendMessage(ChatColor.WHITE + "完了 (" + (System.currentTimeMillis() - startAt) + "ms)");
-                    }
-                });
+                    });
+                } catch (Throwable ex) {
+                    ex.printStackTrace();
+                    getPlayer().sendMessage(ChatColor.RED + "ファイルを処理できませんでした");
+                }
             });
         } catch (IllegalStateException e) {
             getPlayer().sendMessage(ChatColor.RED + "ファイルを処理できませんでした");
@@ -107,10 +113,14 @@ public class StageListPanel extends Panel {
                 game.setWorldEditing(true);
                 game.stageNames().add(name.toLowerCase(Locale.ROOT));
                 game.saveSettings();
+
+                game.backupWorld(name.toLowerCase(Locale.ROOT));
+
                 getPlayer().teleport(world.getSpawnLocation().add(.5, 0, .5));
                 getPlayer().sendMessage(ChatColor.WHITE + "完了 (" + (System.currentTimeMillis() - startAt) + "ms)");
             });
         } catch (IllegalStateException e) {
+            e.printStackTrace();
             getPlayer().sendMessage(ChatColor.RED + "ファイルを処理できませんでした");
         }
     }
@@ -125,18 +135,20 @@ public class StageListPanel extends Panel {
                     .title("新しいステージ名を入力してください")
                     .text("")
                     .onClose((p) -> {
-                        if (game.getWorld() != null) {
-                            getPlayer().sendMessage(ChatColor.RED + "他のステージがロードされているため、ステージを作成できません");
-                            Optional.ofNullable(StageListPanel.this.getBackPanel()).ifPresent(Panel::open);
-                        } else if (name == null) {
-                            StageListPanel.this.open();
-                        } else if (game.stageNames().contains(name.toLowerCase(Locale.ROOT))) {
-                            getPlayer().sendMessage(ChatColor.RED + "ステージ " + name.toLowerCase(Locale.ROOT) + " は既に存在します");
-                            StageListPanel.this.open();
-                        } else {
-                            destroy(true);
-                            createNewStage(name);
-                        }
+                        Bukkit.getScheduler().runTask(OWNER, () -> {
+                            if (game.getWorld() != null) {
+                                getPlayer().sendMessage(ChatColor.RED + "他のステージがロードされているため、ステージを作成できません");
+                                Optional.ofNullable(StageListPanel.this.getBackPanel()).ifPresent(Panel::open);
+                            } else if (name == null) {
+                                StageListPanel.this.open();
+                            } else if (game.stageNames().contains(name.toLowerCase(Locale.ROOT))) {
+                                getPlayer().sendMessage(ChatColor.RED + "ステージ " + name.toLowerCase(Locale.ROOT) + " は既に存在します");
+                                StageListPanel.this.open();
+                            } else {
+                                destroy(true);
+                                createNewStage(name);
+                            }
+                        });
                     })
                     .onComplete((p, name) -> {
                         this.name = name;
