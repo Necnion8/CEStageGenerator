@@ -291,11 +291,15 @@ public class GameManager implements Listener {
             if (citizens.isAvailable()) {
                 try {
                     for (NPC npc : citizens.getNPCRegistry()) {
+                        if (!npc.isSpawned())
+                            continue;
                         try {
-                            World w = npc.getStoredLocation().getWorld();
-                            if (w != null && world.getName().equals(w.getName())) {
-                                npc.despawn();
-                            }
+                            Optional.ofNullable(npc.getStoredLocation())
+                                    .map(Location::getWorld)
+                                    .ifPresent(w -> {
+                                        if (world.getName().equals(w.getName()))
+                                            npc.despawn();
+                                    });
                         } catch (Throwable e) {
                             e.printStackTrace();
                         }
