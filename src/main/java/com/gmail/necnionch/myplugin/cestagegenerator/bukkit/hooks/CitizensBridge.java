@@ -50,7 +50,7 @@ public class CitizensBridge {
     }
 
     public void onEnable() {
-        Collection<Game> games = plugin.getGameManager().games().values();
+        Collection<Game> games = plugin.getGameManager().getGames().values();
         for (Game game : games) {
             if (game.getWorld() != null && game.getCurrentStageConfig() != null) {
                 game.getCurrentStageConfig().restoreNPCs(getNPCRegistry(), game.getWorld());

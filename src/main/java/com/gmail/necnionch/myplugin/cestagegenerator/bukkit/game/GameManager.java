@@ -80,8 +80,8 @@ public class GameManager implements Listener {
         return worldFullName + "/" + gameName;
     }
 
-    public Map<String, Game> games() {
-        return games;
+    public Map<String, Game> getGames() {
+        return Collections.unmodifiableMap(games);
     }
 
     public @Nullable Game getGameByName(String name) {

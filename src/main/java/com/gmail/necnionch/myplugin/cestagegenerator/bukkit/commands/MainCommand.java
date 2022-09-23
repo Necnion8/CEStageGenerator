@@ -35,13 +35,13 @@ public class MainCommand {
 
     public void registerCommands() {
         Argument gameArgument = new CustomArgument<>("game", (input) ->
-                gameManager.games().entrySet().stream()
+                gameManager.getGames().entrySet().stream()
                         .filter(e -> input.equalsIgnoreCase(e.getKey()))
                         .map(Map.Entry::getValue)
                         .findFirst()
                         .orElseThrow(() -> new CustomArgument.CustomArgumentException(new CustomArgument.MessageBuilder("Unknown game: ").appendArgInput()))
         )
-                .overrideSuggestions((s, a) -> gameManager.games().keySet().toArray(new String[0]));
+                .overrideSuggestions((s, a) -> gameManager.getGames().keySet().toArray(new String[0]));
 
         Argument stageArgument = new StringArgument("stage").overrideSuggestions((sender, args) -> {
             Game game;
@@ -110,7 +110,7 @@ public class MainCommand {
 
         String gameName = (String) args[0];
 
-        if (gameManager.games().containsKey(gameName)) {
+        if (gameManager.getGames().containsKey(gameName)) {
             sender.sendMessage(ChatColor.RED + "既に存在するゲーム名です");
             return 0;
         }
