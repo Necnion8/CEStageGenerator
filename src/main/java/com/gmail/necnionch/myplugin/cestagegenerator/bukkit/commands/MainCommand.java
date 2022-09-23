@@ -23,6 +23,7 @@ import org.bukkit.scoreboard.ScoreboardManager;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class MainCommand {
@@ -236,33 +237,41 @@ public class MainCommand {
 
         Game game = (Game) args[0];
 
-        boolean unloaded = false;
+        Supplier<Integer> task = () -> {
+            boolean unloaded = false;
+            if (game.getWorld() != null) {
+                if (game.isWorldEditing()) {
+                    sender.sendMessage(ChatColor.RED + "ゲーム " + game.getName() + " は現在編集モードです");
+                    return 0;
+                }
 
-        if (game.getWorld() != null) {
-            if (game.isWorldEditing()) {
-                sender.sendMessage(ChatColor.RED + "ゲーム " + game.getName() + " は現在編集モードです");
-                return 0;
+                game.unloadWorld();
+                try {
+                    game.cleanOpenedWorld();
+                } catch (IllegalStateException e) {
+                    plugin.getLogger().warning("Failed to clean world: " + e.getMessage());
+                }
+                unloaded = true;
             }
 
-            game.unloadWorld();
-            try {
-                game.cleanOpenedWorld();
-            } catch (IllegalStateException e) {
-                plugin.getLogger().warning("Failed to clean world: " + e.getMessage());
-            }
-            unloaded = true;
+            unloaded = unloaded || Bukkit.getWorlds().stream()
+                    .filter(w -> w.getName().startsWith("stgen/"))
+                    .collect(Collectors.toList()).stream()
+                    .peek(w -> Bukkit.unloadWorld(w, true))
+                    .count() >= 1;
+
+            if (unloaded)
+                sender.sendMessage(ChatColor.GOLD + "ゲーム " + game.getName() + " ステージをアンロードしました");
+
+            return unloaded ? 1 : 0;
+        };
+
+        if (sender.getCaller() instanceof BlockCommandSender) {
+            Bukkit.getScheduler().runTask(plugin, task::get);
+        } else {
+            return task.get();
         }
-
-        unloaded = unloaded || Bukkit.getWorlds().stream()
-                .filter(w -> w.getName().startsWith("stgen/"))
-                .collect(Collectors.toList()).stream()
-                .peek(w -> Bukkit.unloadWorld(w, true))
-                .count() >= 1;
-
-        if (unloaded)
-            sender.sendMessage(ChatColor.GOLD + "ゲーム " + game.getName() + " ステージをアンロードしました");
-
-        return 1;
+        return 0;
     }
 
     private int cmdEditor(CommandSender sender, Object[] args) {
