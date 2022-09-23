@@ -74,4 +74,8 @@ public final class StageGeneratorPlugin extends JavaPlugin {
     }
 
 
+    public GameManager getGameManager() {
+        return gameManager;
+    }
+
 }

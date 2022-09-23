@@ -2,6 +2,7 @@ package com.gmail.necnionch.myplugin.cestagegenerator.bukkit.game;
 
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.StageGeneratorPlugin;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.config.GameConfig;
+import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.config.PlaceData;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.config.StageConfig;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.generator.VoidGenerator;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.hooks.CitizensBridge;
@@ -10,8 +11,17 @@ import com.google.common.collect.Sets;
 import net.citizensnpcs.api.npc.NPC;
 import org.apache.commons.io.FileUtils;
 import org.bukkit.*;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.block.BlockMultiPlaceEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
@@ -27,15 +37,18 @@ public class GameManager implements Listener {
     private final StageGeneratorPlugin plugin;
     private final CitizensBridge citizens;
     private final GameConfig config;
+    private final PlaceData placeData;
     private final Map<String, Game> games = Maps.newHashMap();
     private final File worldContainer;
     private final File worldBackupContainer;
     private final Set<String> processingFiles = Sets.newConcurrentHashSet();
+    private final Map<String, Game> worldOfGames = Maps.newHashMap();
 
     public GameManager(StageGeneratorPlugin plugin, CitizensBridge citizens) {
         this.plugin = plugin;
         this.citizens = citizens;
         this.config = new GameConfig(plugin);
+        this.placeData = new PlaceData(plugin);
         this.worldContainer = new File(Bukkit.getWorldContainer(), "stgen");
         this.worldBackupContainer = new File(plugin.getDataFolder(), "stage_backups");
     }
@@ -84,6 +97,7 @@ public class GameManager implements Listener {
 
         Game game = new Game(this, name, setting);
         games.put(name, game);
+        worldOfGames.put("stgen/" + name, game);
         save();
         return game;
     }
@@ -95,11 +109,13 @@ public class GameManager implements Listener {
 
         Game game = new Game(this, name, null);
         games.put(name, game);
+        worldOfGames.put("stgen/" + name, game);
         save();
         return game;
     }
 
     public void deleteGame(String name) {
+        worldOfGames.remove("stgen/" + name.toLowerCase(Locale.ROOT));
         Game game = games.remove(name.toLowerCase(Locale.ROOT));
         if (game == null)
             throw new IllegalArgumentException("Not exists game: " + name.toLowerCase(Locale.ROOT));
@@ -121,6 +137,7 @@ public class GameManager implements Listener {
     }
 
     public void cleanup() {
+        worldOfGames.clear();
         games.values().forEach(game -> {
             try {
                 game.unloadWorld();
@@ -128,9 +145,9 @@ public class GameManager implements Listener {
                 e.printStackTrace();
             }
         });
-
         games.clear();
         config.cleanup();
+        placeData.save();
         HandlerList.unregisterAll(this);
     }
 
@@ -143,6 +160,7 @@ public class GameManager implements Listener {
         reloadGames();
         if (loadWorlds)
             loadOpenedWorlds();
+        placeData.load();
     }
 
     public void reloadGames() {
@@ -161,6 +179,10 @@ public class GameManager implements Listener {
 
         games.clear();  // delete olds
         games.putAll(newGames);
+
+        worldOfGames.clear();
+        worldOfGames.putAll(games.values().stream()
+                .collect(Collectors.toMap(e -> "stgen/" + e.getName(), e -> e)));
 
         getLogger().info("Loaded " + games.size() + " games");
     }
@@ -293,6 +315,7 @@ public class GameManager implements Listener {
             throw new IllegalStateException("Already processing directory");
 
         processingFiles.add(worldFolder.toString());
+        placeData.removeAll(game.getName());
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
                 FileUtils.deleteDirectory(worldFolder);
@@ -364,7 +387,7 @@ public class GameManager implements Listener {
 
             long delay = System.currentTimeMillis();
             try {
-                if (dest.exists())
+                if (dest.exists())  // TODO: async deleting
                     FileUtils.deleteDirectory(dest);
                 FileUtils.copyDirectory(source, dest);
 
@@ -441,6 +464,107 @@ public class GameManager implements Listener {
         if (config.getFilePath().isFile() && config.load()) {
             config.restoreNPCs(citizens.getNPCRegistry(), world);
         }
+    }
+
+    // events
+
+    @EventHandler(ignoreCancelled = true)
+    public void onPlace(BlockPlaceEvent event) {
+        Player player = event.getPlayer();
+        Block block = event.getBlock();
+
+        if (GameMode.CREATIVE.equals(player.getGameMode()))
+            return;
+
+        Game game = worldOfGames.get(block.getWorld().getName());
+        if (game == null)
+            return;
+
+        if (game.getSetting().getPlaceBlacklists().isListed(block.getType())) {
+            event.setBuild(false);
+            event.setCancelled(true);
+        } else {
+            placeData.put(game.getName(), block.getLocation());
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onPlace(BlockMultiPlaceEvent event) {
+        Player player = event.getPlayer();
+        List<BlockState> placedStates = event.getReplacedBlockStates();
+
+        if (GameMode.CREATIVE.equals(player.getGameMode()))
+            return;
+
+        Map<Game, Set<Location>> entries = Maps.newHashMap();
+        for (BlockState state : placedStates) {
+            Game game = worldOfGames.get(state.getWorld().getName());
+            if (game == null)
+                continue;
+
+            if (game.getSetting().getPlaceBlacklists().isListed(state.getType())) {
+                event.setBuild(false);
+                event.setCancelled(true);
+                return;
+            }
+            if (entries.containsKey(game)) {
+                entries.get(game).add(state.getLocation());
+            } else {
+                entries.put(game, Sets.newHashSet(state.getLocation()));
+            }
+        }
+        entries.forEach((game, locations) -> locations.forEach(loc -> placeData.put(game.getName(), loc)));
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onBreak(BlockBreakEvent event) {
+        Player player = event.getPlayer();
+        Block block = event.getBlock();  // TODO: ドアなどのMultiBlockを処理する
+
+        if (GameMode.CREATIVE.equals(player.getGameMode()))
+            return;
+
+        Game game = worldOfGames.get(block.getWorld().getName());
+        if (game == null)
+            return;
+
+        if (placeData.contains(block.getLocation())) {
+            placeData.remove(game.getName(), block.getLocation());
+        } else {
+            if (!game.getSetting().getBreakWhitelists().isListed(block.getType())) {
+                event.setCancelled(true);
+            }
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onBreak(BlockExplodeEvent event) {
+        event.blockList().removeIf(block -> {
+            Game game = worldOfGames.get(block.getWorld().getName());
+            if (game != null) {
+                if (placeData.contains(block.getLocation())) {
+                    placeData.remove(game.getName(), block.getLocation());
+                    return false;
+                }
+                // 爆破では isWhitelistedBreak を適用しない
+            }
+            return true;
+        });
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onBreak(EntityExplodeEvent event) {
+        event.blockList().removeIf(block -> {
+            Game game = worldOfGames.get(block.getWorld().getName());
+            if (game != null) {
+                if (placeData.contains(block.getLocation())) {
+                    placeData.remove(game.getName(), block.getLocation());
+                    return false;
+                }
+                // 爆破では isWhitelistedBreak を適用しない
+            }
+            return true;
+        });
     }
 
 }
