@@ -246,6 +246,11 @@ public class MainCommand {
             }
 
             game.unloadWorld();
+            try {
+                game.cleanOpenedWorld();
+            } catch (IllegalStateException e) {
+                plugin.getLogger().warning("Failed to clean world: " + e.getMessage());
+            }
             sender.sendMessage(ChatColor.GOLD + "ゲーム " + game.getName() + " ステージをアンロードしました");
         }
         return 1;
