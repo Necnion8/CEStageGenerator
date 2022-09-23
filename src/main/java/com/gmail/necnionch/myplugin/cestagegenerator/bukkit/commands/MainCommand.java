@@ -53,6 +53,7 @@ public class MainCommand {
 
 
         new CommandAPICommand("cestgen")
+                .withPermission("cestagegenerator.command.cestgen")
                 .withSubcommand(new CommandAPICommand("creategame")
                         .withArguments(new StringArgument("name"))
                         .executesNative(this::cmdCreateGame)
