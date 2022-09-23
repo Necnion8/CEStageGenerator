@@ -23,6 +23,7 @@ import org.bukkit.scoreboard.ScoreboardManager;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 public class MainCommand {
 
@@ -254,6 +255,7 @@ public class MainCommand {
 
         unloaded = unloaded || Bukkit.getWorlds().stream()
                 .filter(w -> w.getName().startsWith("stgen/"))
+                .collect(Collectors.toList()).stream()
                 .peek(w -> Bukkit.unloadWorld(w, true))
                 .count() >= 1;
 
