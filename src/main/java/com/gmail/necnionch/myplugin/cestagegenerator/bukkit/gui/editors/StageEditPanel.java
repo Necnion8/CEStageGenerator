@@ -43,16 +43,20 @@ public class StageEditPanel extends Panel {
                     this.update();
                     // saving animation
                     game.saveWorld();
-                    game.backupWorld(stageName).whenComplete((v, ex) -> {
-                        saving = false;
-                        this.update();
 
-                        if (ex != null) {
-                            getPlayer().sendMessage(ChatColor.RED + "ステージをバックアップできませんでした");
-                        } else {
-                            getPlayer().sendMessage(ChatColor.WHITE + "ステージ " + stageName + " を保存しました");
-                        }
-                    });
+                    // world.save() って非同期？ 少し遅延を入れる
+                    Bukkit.getScheduler().runTaskLater(game.getManager().getPlugin(), () -> {
+                        game.backupWorld(stageName).whenComplete((v, ex) -> {
+                            saving = false;
+                            this.update();
+
+                            if (ex != null) {
+                                getPlayer().sendMessage(ChatColor.RED + "ステージをバックアップできませんでした");
+                            } else {
+                                getPlayer().sendMessage(ChatColor.WHITE + "ステージ " + stageName + " を保存しました");
+                            }
+                        });
+                    }, 2);
                 });
 
         slots[9+5-1] = PanelItem.createItem(Material.END_CRYSTAL, ChatColor.GOLD + "ゲーム編集画面に戻る")

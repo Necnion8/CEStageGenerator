@@ -145,7 +145,14 @@ public class StageListPanel extends Panel {
                 game.stageNames().add(name.toLowerCase(Locale.ROOT));
                 game.saveSettings();
 
-                game.backupWorld(name.toLowerCase(Locale.ROOT));
+                // World.save が非同期？ 少し遅延を入れる
+                Bukkit.getScheduler().runTaskLater(game.getManager().getPlugin(), () -> {
+                    try {
+                        game.backupWorld(name.toLowerCase(Locale.ROOT));
+                    } catch (Throwable ex) {
+                        ex.printStackTrace();
+                    }
+                }, 2);
 
                 Location loc = world.getSpawnLocation();
                 getPlayer().teleport(loc.add(.5, 0, .5));

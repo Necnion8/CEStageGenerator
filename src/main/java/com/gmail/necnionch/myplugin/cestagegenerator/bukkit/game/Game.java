@@ -37,6 +37,9 @@ public class Game {
         return manager.getLogger();
     }
 
+    public GameManager getManager() {
+        return manager;
+    }
 
     public GameSetting getSetting() {
         return setting;
