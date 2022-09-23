@@ -1,6 +1,6 @@
 package com.gmail.necnionch.myplugin.cestagegenerator.bukkit.gui.editors;
 
-import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.game.GameSetting;
+import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.game.MaterialList;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.gui.Panel;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.gui.PanelItem;
 import org.bukkit.ChatColor;
@@ -16,9 +16,9 @@ public class MaterialAddSelectPanel extends Panel {
 
     private final List<Material> materials;
 //    private final Set<Material> selectedMaterials = Sets.newHashSet();
-    private final GameSetting.MaterialList materialList;
+    private final MaterialList materialList;
 
-    public MaterialAddSelectPanel(Player player, List<Material> materials, GameSetting.MaterialList materialList) {
+    public MaterialAddSelectPanel(Player player, List<Material> materials, MaterialList materialList) {
         super(player, Math.min(Math.max(9, (int) Math.ceil(materials.size() / 9d) * 9), 54), ChatColor.DARK_PURPLE + "追加するブロックを選択", null);
         this.materials = materials;
         this.materialList = materialList;

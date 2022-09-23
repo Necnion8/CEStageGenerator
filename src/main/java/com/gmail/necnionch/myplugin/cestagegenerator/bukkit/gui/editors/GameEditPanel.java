@@ -2,6 +2,7 @@ package com.gmail.necnionch.myplugin.cestagegenerator.bukkit.gui.editors;
 
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.game.Game;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.game.GameSetting;
+import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.game.MaterialList;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.gui.Panel;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.gui.PanelItem;
 import com.google.common.collect.Lists;
@@ -39,51 +40,75 @@ public class GameEditPanel extends Panel {
     public PanelItem[] build() {
         PanelItem[] slots = new PanelItem[getSize()];
 
-        GameSetting.MaterialList breakList = getSetting().getBreakWhitelists();
+        MaterialList breakList = getSetting().getBreaksList();
+        MaterialList.Action breakAction = breakList.getAction();
         slots[9+2-1] = PanelItem.createItem(Material.AIR, "").setItemBuilder((p) -> {
-            String label = ChatColor.GOLD + "破壊可能ブロック " + ChatColor.GRAY + "- ";
+            String allowable = (MaterialList.Action.ALLOW.equals(breakAction)) ? "破壊可能" : "破壊不可能";
+            String label = ChatColor.GOLD + allowable + "ブロック " + ChatColor.GRAY + "- ";
 
-            if (breakList.isAll()) {
-                label += ChatColor.WHITE + "全て";
-            } else if (breakList.isEmpty()) {
+            if (breakList.isEmpty()) {
                 label += ChatColor.WHITE + "なし";
             } else {
                 label += ChatColor.YELLOW.toString() + breakList.size() + " ブロック";
             }
             return PanelItem.createItem(Material.IRON_PICKAXE, label, Lists.newArrayList(
                     ChatColor.GRAY + "左クリック: 一覧の表示",
-                    ChatColor.GRAY + "右クリック: ID検索による一括追加"
+                    ChatColor.GRAY + "右クリック: リストモードの切り替え",
+                    ChatColor.GRAY + "S+左クリック: ブロックID検索で追加"
             )).getItemStack();
+
         }).setClickListener((e, p) -> {
+            String title = ChatColor.DARK_RED + ((MaterialList.Action.ALLOW.equals(breakAction)) ? "破壊可能ブロック" : "破壊不可能ブロック");
+
             if (ClickType.LEFT.equals(e.getClick())) {
-                new MaterialSelectPanel(p, breakList, ChatColor.DARK_RED + "破壊可能ブロック").open(this);
+                new MaterialSelectPanel(p, breakList, title).open(this);
+
+            } else if (ClickType.SHIFT_LEFT.equals(e.getClick())) {
+                new MaterialSelector(title, breakList).open();
 
             } else if (ClickType.RIGHT.equals(e.getClick())) {
-                new MaterialSelector(ChatColor.DARK_RED + "破壊可能ブロック", breakList).open();
+                if (MaterialList.Action.ALLOW.equals(breakAction)) {
+                    breakList.setAction(MaterialList.Action.DENY);
+                } else {
+                    breakList.setAction(MaterialList.Action.ALLOW);
+                }
+                this.update();
             }
         });
 
-        GameSetting.MaterialList placeList = getSetting().getPlaceBlacklists();
+        MaterialList placeList = getSetting().getPlacesList();
+        MaterialList.Action placeAction = placeList.getAction();
         slots[9+3-1] = PanelItem.createItem(Material.AIR, "").setItemBuilder((p) -> {
-            String label = ChatColor.GOLD + "設置禁止ブロック " + ChatColor.GRAY + "- ";
+            String allowable = (MaterialList.Action.ALLOW.equals(placeAction)) ? "設置可能" : "設置不可能";
+            String label = ChatColor.GOLD + allowable + "ブロック " + ChatColor.GRAY + "- ";
 
-            if (placeList.isAll()) {
-                label += ChatColor.WHITE + "全て";
-            } else if (placeList.isEmpty()) {
+            if (placeList.isEmpty()) {
                 label += ChatColor.WHITE + "なし";
             } else {
                 label += ChatColor.YELLOW.toString() + placeList.size() + " ブロック";
             }
             return PanelItem.createItem(Material.NETHER_STAR, label, Lists.newArrayList(
                     ChatColor.GRAY + "左クリック: 一覧の表示",
-                    ChatColor.GRAY + "右クリック: ID検索による追加"
+                    ChatColor.GRAY + "右クリック: リストモードの切り替え",
+                    ChatColor.GRAY + "S+左クリック: ブロックID検索で追加"
             )).getItemStack();
+
         }).setClickListener((e, p) -> {
+            String title = ChatColor.DARK_RED + ((MaterialList.Action.ALLOW.equals(placeAction)) ? "設置可能ブロック" : "設置不可能ブロック");
+
             if (ClickType.LEFT.equals(e.getClick())) {
-                new MaterialSelectPanel(p, placeList, ChatColor.DARK_RED + "設置禁止ブロック").open(this);
+                new MaterialSelectPanel(p, placeList, title).open(this);
+
+            } else if (ClickType.SHIFT_LEFT.equals(e.getClick())) {
+                new MaterialSelector(title, placeList).open();
 
             } else if (ClickType.RIGHT.equals(e.getClick())) {
-                new MaterialSelector(ChatColor.DARK_RED + "設置禁止ブロック", placeList).open();
+                if (MaterialList.Action.ALLOW.equals(placeAction)) {
+                    placeList.setAction(MaterialList.Action.DENY);
+                } else {
+                    placeList.setAction(MaterialList.Action.ALLOW);
+                }
+                this.update();
             }
         });
 
@@ -139,10 +164,10 @@ public class GameEditPanel extends Panel {
     private class MaterialSelector {
 
         private final String title;
-        private final GameSetting.MaterialList materialList;
+        private final MaterialList materialList;
         private List<Material> finds;
 
-        public MaterialSelector(String title, GameSetting.MaterialList materialList) {
+        public MaterialSelector(String title, MaterialList materialList) {
             this.title = title;
             this.materialList = materialList;
         }

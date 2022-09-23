@@ -1,6 +1,6 @@
 package com.gmail.necnionch.myplugin.cestagegenerator.bukkit.gui.editors;
 
-import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.game.GameSetting;
+import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.game.MaterialList;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.gui.Panel;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.gui.PanelItem;
 import org.bukkit.Bukkit;
@@ -17,9 +17,9 @@ import java.util.Iterator;
 
 public class MaterialSelectPanel extends Panel {
 
-    private final GameSetting.MaterialList materialList;
+    private final MaterialList materialList;
 
-    public MaterialSelectPanel(Player player, GameSetting.MaterialList materialList, String title) {
+    public MaterialSelectPanel(Player player, MaterialList materialList, String title) {
         super(player, 54, title, null);
         this.materialList = materialList;
         setOpenParentWhenClosing(true);

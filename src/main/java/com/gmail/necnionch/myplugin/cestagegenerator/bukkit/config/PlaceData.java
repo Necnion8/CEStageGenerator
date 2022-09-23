@@ -68,13 +68,15 @@ public class PlaceData extends BukkitConfigDriver {
         queue();
     }
 
-    public void remove(String gameName, Location location) {
+    public boolean remove(String gameName, Location location) {
         String loc = location.getWorld().getName() + "," + location.getBlockX() + "," + location.getBlockY() + "," + location.getBlockZ();
         if (blocks.containsKey(gameName)) {
             blocks.get(gameName).remove(loc);
             changed = true;
             queue();
+            return true;
         }
+        return false;
     }
 
     public void removeAll(String gameName) {

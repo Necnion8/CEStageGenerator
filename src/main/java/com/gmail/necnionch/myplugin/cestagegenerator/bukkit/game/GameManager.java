@@ -480,11 +480,14 @@ public class GameManager implements Listener {
         if (game == null)
             return;
 
-        if (game.getSetting().getPlaceBlacklists().isListed(block.getType())) {
+        MaterialList places = game.getSetting().getPlacesList();
+
+        if (places.contains(block.getType()) == MaterialList.Action.ALLOW.equals(places.getAction())) {
+            placeData.put(game.getName(), block.getLocation());
+
+        } else {
             event.setBuild(false);
             event.setCancelled(true);
-        } else {
-            placeData.put(game.getName(), block.getLocation());
         }
     }
 
@@ -497,20 +500,25 @@ public class GameManager implements Listener {
             return;
 
         Map<Game, Set<Location>> entries = Maps.newHashMap();
+
         for (BlockState state : placedStates) {
             Game game = worldOfGames.get(state.getWorld().getName());
             if (game == null)
                 continue;
 
-            if (game.getSetting().getPlaceBlacklists().isListed(state.getType())) {
+            MaterialList places = game.getSetting().getPlacesList();
+
+            if (places.contains(state.getType()) == MaterialList.Action.ALLOW.equals(places.getAction())) {
+                if (entries.containsKey(game)) {
+                    entries.get(game).add(state.getLocation());
+                } else {
+                    entries.put(game, Sets.newHashSet(state.getLocation()));
+                }
+
+            } else {
                 event.setBuild(false);
                 event.setCancelled(true);
                 return;
-            }
-            if (entries.containsKey(game)) {
-                entries.get(game).add(state.getLocation());
-            } else {
-                entries.put(game, Sets.newHashSet(state.getLocation()));
             }
         }
         entries.forEach((game, locations) -> locations.forEach(loc -> placeData.put(game.getName(), loc)));
@@ -528,12 +536,13 @@ public class GameManager implements Listener {
         if (game == null)
             return;
 
-        if (placeData.contains(block.getLocation())) {
+        MaterialList breaks = game.getSetting().getBreaksList();
+
+        if (placeData.contains(block.getLocation()) || breaks.contains(block.getType()) == MaterialList.Action.ALLOW.equals(breaks.getAction())) {
             placeData.remove(game.getName(), block.getLocation());
+
         } else {
-            if (!game.getSetting().getBreakWhitelists().isListed(block.getType())) {
-                event.setCancelled(true);
-            }
+            event.setCancelled(true);
         }
     }
 

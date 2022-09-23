@@ -1,24 +1,28 @@
 package com.gmail.necnionch.myplugin.cestagegenerator.bukkit.game;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 public class GameSetting {
     private final List<String> stageNames;
-    private final MaterialList placeBlacklists;
-    private final MaterialList breakWhitelists;
+    private final MaterialList places;
+    private final MaterialList breaks;
 
     public GameSetting(List<String> stageNames) {
         this.stageNames = stageNames;
-        this.placeBlacklists = new MaterialList();
-        this.breakWhitelists = new MaterialList();
+        this.places = new MaterialList(MaterialList.Action.ALLOW);
+        this.breaks = new MaterialList(MaterialList.Action.DENY);
+    }
+
+    public GameSetting(List<String> stageNames, MaterialList places, MaterialList breaks) {
+        this.stageNames = stageNames;
+        this.places = places;
+        this.breaks = breaks;
     }
 
     public GameSetting() {
@@ -29,52 +33,54 @@ public class GameSetting {
         return stageNames;
     }
 
-    public MaterialList getPlaceBlacklists() {
-        return placeBlacklists;
+    public MaterialList getPlacesList() {
+        return places;
     }
 
-    public MaterialList getBreakWhitelists() {
-        return breakWhitelists;
+    public MaterialList getBreaksList() {
+        return breaks;
     }
 
     public void serialize(ConfigurationSection config) {
         config.set("stages", stageNames);
-        config.set("blacklist-places", placeBlacklists.stream().map(Enum::name).collect(Collectors.toList()));
-        config.set("whitelist-breaks", breakWhitelists.stream().map(Enum::name).collect(Collectors.toList()));
+        config.set("place-types", places.stream().map(Enum::name).collect(Collectors.toList()));
+        config.set("place-mode", places.getAction().name().toLowerCase(Locale.ROOT));
+        config.set("break-types", breaks.stream().map(Enum::name).collect(Collectors.toList()));
+        config.set("break-mode", breaks.getAction().name().toLowerCase(Locale.ROOT));
     }
 
     public static GameSetting deserialize(ConfigurationSection config) {
         List<String> stages = config.getStringList("stages");
-//        boolean protectBlocks = config.getBoolean("protect-blocks");
 
-        Set<Material> places = Sets.newLinkedHashSet();
-        config.getStringList("blacklist-places").forEach(mName -> {
+        MaterialList.Action action;
+        try {
+            action = MaterialList.Action.valueOf(config.getString("place-mode", "").toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            action = MaterialList.Action.ALLOW;
+        }
+        MaterialList places = new MaterialList(action);
+        config.getStringList("place-types").forEach(mName -> {
             try {
                 places.add(Material.valueOf(mName));
-            } catch (IllegalArgumentException ignored) {}
+            } catch (IllegalArgumentException ignored) {
+            }
         });
-        Set<Material> breaks = Sets.newLinkedHashSet();
-        config.getStringList("whitelist-breaks").forEach(mName -> {
+
+        try {
+            action = MaterialList.Action.valueOf(config.getString("break-mode", "").toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            action = MaterialList.Action.DENY;
+        }
+        MaterialList breaks = new MaterialList(action);
+        config.getStringList("break-types").forEach(mName -> {
             try {
                 breaks.add(Material.valueOf(mName));
-            } catch (IllegalArgumentException ignored) {}
+            } catch (IllegalArgumentException ignored) {
+            }
         });
 
-        GameSetting game = new GameSetting(stages);
-        game.placeBlacklists.addAll(places);
-        game.breakWhitelists.addAll(breaks);
-        return game;
+        return new GameSetting(stages, places, breaks);
     }
 
-
-    public static class MaterialList extends LinkedHashSet<Material> {
-        public boolean isAll() {
-            return this.isEmpty();
-        }
-
-        public boolean isListed(Material type) {
-            return isAll() || contains(type);
-        }
-    }
 
 }
