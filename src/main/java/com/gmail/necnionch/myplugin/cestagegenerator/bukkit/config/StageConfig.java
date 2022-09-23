@@ -65,12 +65,20 @@ public class StageConfig extends BukkitConfigDriver {
         for (NPC npc : registry) {
             if (placedNPCIds.contains(npc.getId()))
                 continue;
-            World w = npc.getStoredLocation().getWorld();
-            if (w != null && world.getName().equals(w.getName())) {
-                npc.despawn();
+            if (!npc.isSpawned())
+                continue;
+
+            try {
+                Optional.ofNullable(npc.getStoredLocation())
+                        .map(Location::getWorld)
+                        .ifPresent(w -> {
+                            if (world.getName().equals(w.getName()))
+                                npc.despawn();
+                        });
+            } catch (Throwable e) {
+                e.printStackTrace();
             }
         }
-
     }
 
     public String getStageName() {
