@@ -17,9 +17,11 @@ import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Score;
+import org.bukkit.scoreboard.ScoreboardManager;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 public class MainCommand {
 
@@ -155,54 +157,41 @@ public class MainCommand {
             return 0;
         }
 
-        if (functions == null || functions.length <= 0) {
-            World world = null;
-            try {
-                game.restoreWorldInCurrentThread(stageName);
-                world = game.loadWorld(false);
-                if (world == null)
-                    plugin.getLogger().warning("Failed to load by command: " + game.getName() + "/" + stageName);
+        Optional<Score> stateScoreboard = Optional.ofNullable(Bukkit.getScoreboardManager())
+                .map(ScoreboardManager::getMainScoreboard)
+                .map(sb -> Optional.ofNullable(sb.getObjective("CEStageGenerator"))
+                        .orElseGet(() -> sb.registerNewObjective("CEStageGenerator", "dummy", "CEStageGenerator")))
+                .map(obj -> obj.getScore(game.getName()));
+        stateScoreboard.ifPresent(score -> score.setScore(0));
 
-            } catch (Throwable e) {
-                plugin.getLogger().warning("Failed to load by command: " + game.getName() + "/" + stageName);
-                plugin.getLogger().warning("> " + e.getMessage());
-            }
+        boolean async = functions != null && functions.length > 0;
+        loadStage(game, stageName, async).whenComplete((world, ex) -> {
+
             if (world == null) {
-                sender.sendMessage(ChatColor.RED + "ステージ " + game.getName() + "/" + stageName + " をロードできませんでした");
-                return 0;
+                plugin.getLogger().warning("Failed to load by command: " + game.getName() + "/" + stageName);
+                sender.sendMessage(ChatColor.YELLOW + "ステージ " + game.getName() + "/" + stageName + " をロードできませんでした");
+            } else {
+                sender.sendMessage(ChatColor.GOLD + "ステージ " + game.getName() + "/" + stageName + " をロードしました");
             }
-            sender.sendMessage(ChatColor.GOLD + "ステージ " + game.getName() + "/" + stageName + " をロードしました");
-            return 1;
 
-        } else {  // async with on load function
-            game.restoreWorld(stageName).whenComplete((v, e) -> {
-                if (e != null) {
-                    sender.sendMessage(ChatColor.RED + "ステージ " + game.getName() + "/" + stageName + " をロードできませんでした");
+            if (ex != null) {
+                if (ex instanceof IllegalArgumentException || ex instanceof IllegalStateException) {
+                    plugin.getLogger().warning("> " + ex.getMessage());
                 } else {
-                    World world = null;
-                    try {
-                        world = game.loadWorld(false);
-                        if (world == null)
-                            plugin.getLogger().warning("Failed to load by command: " + game.getName() + "/" + stageName);
+                    ex.printStackTrace();
+                }
+            }
 
-                    } catch (Throwable ex) {
-                        plugin.getLogger().warning("Failed to load by command: " + game.getName() + "/" + stageName);
-                        plugin.getLogger().warning("> " + ex.getMessage());
-                    }
-                    if (world != null) {
-                        sender.sendMessage(ChatColor.GOLD + "ステージ " + game.getName() + "/" + stageName + " をロードしました");
-
-                        try (SilentCommandSender silentSender = new SilentCommandSender(null)) {
-                            for (FunctionWrapper function : functions) {
-                                silentSender.dispatchCommand("execute in " + game.getWorld().getName() + " run function " + function.getKey().toString());
-                            }
-                        }
-                    } else {
-                        sender.sendMessage(ChatColor.YELLOW + "ステージ " + game.getName() + "/" + stageName + " をロードできませんでした");
+            stateScoreboard.ifPresent(score -> score.setScore((world != null) ? 1 : -1));
+            if (functions != null) {
+                try (SilentCommandSender silentSender = new SilentCommandSender(null)) {
+                    for (FunctionWrapper function : functions) {
+                        silentSender.dispatchCommand("execute in " + game.getWorld().getName() + " run function " + function.getKey());
                     }
                 }
-            });
-        }
+            }
+
+        });
         return 1;
     }
 
@@ -278,5 +267,27 @@ public class MainCommand {
         return 0;
     }
 
+
+    private CompletableFuture<World> loadStage(Game game, String stageName, boolean async) {
+        CompletableFuture<World> f;
+        if (async) {
+            try {
+                f = game.restoreWorld(stageName)
+                        .thenApply((v) -> game.loadWorld(false));
+            } catch (Throwable e) {
+                f = new CompletableFuture<>();
+                f.completeExceptionally(e);
+            }
+        } else {
+            try {
+                game.restoreWorldInCurrentThread(stageName);
+                f = CompletableFuture.completedFuture(game.loadWorld(false));
+            } catch (Throwable e) {
+                f = new CompletableFuture<>();
+                f.completeExceptionally(e);
+            }
+        }
+        return f;
+    }
 
 }

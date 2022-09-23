@@ -252,19 +252,18 @@ public class GameManager implements Listener {
                 }
 
                 long delay = System.currentTimeMillis();
-                world = WorldCreator
+                world = Objects.requireNonNull(WorldCreator
                         .name(worldFullName)
                         .type(WorldType.FLAT)
                         .generator(new VoidGenerator())
                         .generateStructures(false)
-                        .createWorld();
+                        .createWorld(), "Failed to WorldCreator.createWorld()");
 
+                world.getForceLoadedChunks().forEach(Chunk::load);
                 delay = System.currentTimeMillis() - delay;
                 getLogger().info("World Loaded (" + delay + "ms): " + world.getName());
 
                 world.setKeepSpawnInMemory(false);
-//                world.setAutoSave(false);
-                world.setSpawnLocation(0, 64, 0);
 
                 if (!exists) {
                     world.setTime(6000);
@@ -275,6 +274,7 @@ public class GameManager implements Listener {
                     world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
                     world.setGameRule(GameRule.KEEP_INVENTORY, true);
                     world.setGameRule(GameRule.MOB_GRIEFING, false);
+                    world.setSpawnLocation(0, 64, 0);
                     world.getBlockAt(0, 63, 0).setType(Material.BEDROCK, false);
                     world.save();
                 }

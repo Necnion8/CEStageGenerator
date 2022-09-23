@@ -27,7 +27,7 @@ repositories {
 
 dependencies {
     implementation 'org.jetbrains:annotations:23.0.0'
-    compileOnly 'org.spigotmc:spigot-api:1.13-R0.1-SNAPSHOT'
+    compileOnly 'org.spigotmc:spigot-api:1.14-R0.1-SNAPSHOT'
     implementation files("libs/CommandAPI.jar")
     implementation files("libs/Citizens-2.0.27-b2302.jar")
 
