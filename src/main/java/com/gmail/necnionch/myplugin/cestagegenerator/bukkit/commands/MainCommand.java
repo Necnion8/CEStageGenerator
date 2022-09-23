@@ -14,6 +14,7 @@ import dev.jorel.commandapi.wrappers.NativeProxyCommandSender;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.command.BlockCommandSender;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Score;
@@ -164,7 +165,7 @@ public class MainCommand {
                 .map(obj -> obj.getScore(game.getName()));
         stateScoreboard.ifPresent(score -> score.setScore(0));
 
-        boolean async = functions != null && functions.length > 0;
+        boolean async = (functions != null && functions.length > 0) || sender.getCaller() instanceof BlockCommandSender;
         loadStage(game, stageName, async).whenComplete((world, ex) -> {
 
             if (world == null) {
