@@ -1,6 +1,7 @@
 package com.gmail.necnionch.myplugin.cestagegenerator.bukkit.game;
 
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.config.StageConfig;
+import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.util.CoolTime;
 import org.bukkit.World;
 import org.jetbrains.annotations.Nullable;
 
@@ -15,6 +16,7 @@ public class Game {
 
     private final String name;
     private final GameManager manager;
+    private final CoolTime loadCoolTime = new CoolTime(50);  // 1tick
     private GameSetting setting;
     private @Nullable World world;
     private @Nullable StageConfig currentStageConfig;
@@ -72,8 +74,11 @@ public class Game {
     }
 
     public @Nullable World loadWorld(boolean create) throws IllegalStateException {
-        if (world != null)
+        if (world != null) {
+            if (!loadCoolTime.fire())
+                throw new IllegalStateException("A little later! (>= 50ms)");
             unloadWorld();
+        }
 
         this.world = manager.loadWorld(this, create);
         if (this.world != null) {
@@ -125,6 +130,10 @@ public class Game {
 
     public CompletableFuture<Void> restoreWorld(String stageName) throws IllegalArgumentException, IllegalStateException {
         return manager.restoreWorld(this, stageName);
+    }
+
+    public void restoreWorldInCurrentThread(String stageName) throws IllegalArgumentException, IllegalStateException {
+        manager.restoreWorldInCurrentThread(this, stageName);
     }
 
     public CompletableFuture<Void> deleteWorldBackup(String stageName) throws IllegalStateException {

@@ -417,6 +417,38 @@ public class GameManager implements Listener {
         return f;
     }
 
+    void restoreWorldInCurrentThread(Game game, String stageName) throws IllegalArgumentException, IllegalStateException {
+        if (!existsBackupWorldFolder(game, stageName))
+            throw new IllegalArgumentException("Not exists backup stage world: " + game.getName() + "/" + stageName);
+
+        if (Bukkit.getWorlds().contains(game.getWorld()))
+            throw new IllegalArgumentException("Not unloaded opened world: " + game.getWorld().getName());
+
+        File source = getBackupWorldFolderFile(game, stageName);
+        File dest = getOpenedWorldFolderFile(game);
+
+        if (processingFiles.contains(dest.toString()))
+            throw new IllegalStateException("Already processing directory");
+
+        processingFiles.add(dest.toString());
+
+        long delay = System.currentTimeMillis();
+        try {
+            if (dest.exists())
+                FileUtils.deleteDirectory(dest);
+            FileUtils.copyDirectory(source, dest);
+
+        } catch (IOException e) {
+            getLogger().severe("Failed to backup '" + source + "' to '" + dest + "': " + e.getMessage());
+            return;
+
+        } finally {
+            processingFiles.remove(dest.toString());
+        }
+        delay = System.currentTimeMillis() - delay;
+        getLogger().info("Completed stage restore (" + delay + "ms): " + game.getName() + "/" + stageName);
+    }
+
     CompletableFuture<Void> deleteWorldBackup(Game game, String stageName) throws IllegalStateException {
         File backupFolder = getBackupWorldFolderFile(game, stageName);
         if (!backupFolder.exists())

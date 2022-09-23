@@ -5,18 +5,21 @@ import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.game.Game;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.game.GameManager;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.gui.editors.GameEditPanel;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.gui.editors.StageEditPanel;
+import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.util.SilentCommandSender;
 import dev.jorel.commandapi.CommandAPI;
 import dev.jorel.commandapi.CommandAPICommand;
-import dev.jorel.commandapi.arguments.Argument;
-import dev.jorel.commandapi.arguments.CustomArgument;
-import dev.jorel.commandapi.arguments.IntegerArgument;
-import dev.jorel.commandapi.arguments.StringArgument;
+import dev.jorel.commandapi.arguments.*;
+import dev.jorel.commandapi.wrappers.FunctionWrapper;
 import dev.jorel.commandapi.wrappers.NativeProxyCommandSender;
 import net.md_5.bungee.api.ChatColor;
+import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.scoreboard.Score;
 
 import java.util.Map;
+import java.util.Optional;
 
 public class MainCommand {
 
@@ -63,10 +66,17 @@ public class MainCommand {
                         .withArguments(stageArgument)
                         .executesNative(this::cmdLoadStage)
                 )
-                .withSubcommand(new CommandAPICommand("loadstageof")
+                .withSubcommand(new CommandAPICommand("loadstage")
                         .withArguments(gameArgument)
-                        .withArguments(new IntegerArgument("stageIndex"))
-                        .executesNative(this::cmdLoadStageOfIndex)
+                        .withArguments(stageArgument)
+                        .withArguments(new FunctionArgument("onload"))
+                        .executesNative(this::cmdLoadStage)
+                )
+                .withSubcommand(new CommandAPICommand("loadstagebyscore")
+                        .withArguments(gameArgument)
+                        .withArguments(new ObjectiveArgument("objective"))
+                        .withArguments(new ScoreHolderArgument("name", ScoreHolderArgument.ScoreHolderType.SINGLE))
+                        .executesNative(this::cmdLoadStageByScore)
                 )
                 .withSubcommand(new CommandAPICommand("unloadstage")
                         .withArguments(gameArgument)
@@ -117,6 +127,7 @@ public class MainCommand {
 
         Game game = (Game) args[0];
         String stageName = (String) args[1];
+        FunctionWrapper[] functions = (args.length >= 3) ? (FunctionWrapper[]) args[2] : null;
 
         if (game.getWorld() != null)  // loaded
             return 0;
@@ -136,23 +147,76 @@ public class MainCommand {
             return 0;
         }
 
-        game.restoreWorld(stageName).whenComplete((v, e) -> {
-            if (game.loadWorld(false) != null) {
-                sender.sendMessage(ChatColor.GOLD + "ステージ " + game.getName() + "/" + stageName + " をロードしました");
-            } else {
+        if (functions == null || functions.length <= 0) {
+            World world = null;
+            try {
+                game.restoreWorldInCurrentThread(stageName);
+                world = game.loadWorld(false);
+                if (world == null)
+                    plugin.getLogger().warning("Failed to load by command: " + game.getName() + "/" + stageName);
+
+            } catch (Throwable e) {
                 plugin.getLogger().warning("Failed to load by command: " + game.getName() + "/" + stageName);
-                sender.sendMessage(ChatColor.YELLOW + "ステージ " + game.getName() + "/" + stageName + " をロードできませんでした");
+                plugin.getLogger().warning("> " + e.getMessage());
             }
-        });
+            if (world == null) {
+                sender.sendMessage(ChatColor.RED + "ステージ " + game.getName() + "/" + stageName + " をロードできませんでした");
+                return 0;
+            }
+            sender.sendMessage(ChatColor.GOLD + "ステージ " + game.getName() + "/" + stageName + " をロードしました");
+            return 1;
+
+        } else {  // async with on load function
+            game.restoreWorld(stageName).whenComplete((v, e) -> {
+                if (e != null) {
+                    sender.sendMessage(ChatColor.RED + "ステージ " + game.getName() + "/" + stageName + " をロードできませんでした");
+                } else {
+                    World world = null;
+                    try {
+                        world = game.loadWorld(false);
+                        if (world == null)
+                            plugin.getLogger().warning("Failed to load by command: " + game.getName() + "/" + stageName);
+
+                    } catch (Throwable ex) {
+                        plugin.getLogger().warning("Failed to load by command: " + game.getName() + "/" + stageName);
+                        plugin.getLogger().warning("> " + ex.getMessage());
+                    }
+                    if (world != null) {
+                        sender.sendMessage(ChatColor.GOLD + "ステージ " + game.getName() + "/" + stageName + " をロードしました");
+
+                        try (SilentCommandSender silentSender = new SilentCommandSender(null)) {
+                            for (FunctionWrapper function : functions) {
+                                silentSender.dispatchCommand("execute in " + game.getWorld().getName() + " run function " + function.getKey().toString());
+                            }
+                        }
+                    } else {
+                        sender.sendMessage(ChatColor.YELLOW + "ステージ " + game.getName() + "/" + stageName + " をロードできませんでした");
+                    }
+                }
+            });
+        }
         return 1;
     }
 
-    private int cmdLoadStageOfIndex(NativeProxyCommandSender sender, Object[] args) {
+    private int cmdLoadStageByScore(NativeProxyCommandSender sender, Object[] args) {
         Game game = (Game) args[0];
-        int stageIndex = (int) args[1];
+        String objective = (String) args[1];
+        String entry = (String) args[2];
+
+        Optional<Integer> score = Optional.ofNullable(Bukkit.getScoreboardManager().getMainScoreboard())
+                .map(sb -> sb.getObjective(objective))
+                .map(obj -> obj.getScore(entry))
+                .map(Score::getScore);
+
+        if (!score.isPresent()) {
+            sender.sendMessage(ChatColor.RED + "スコアが設定されていません");
+            return 0;
+        }
+
         String stageName;
+
         try {
-            stageName = game.stageNames().get(stageIndex);
+            stageName = game.stageNames().get(score.get());
         } catch (IndexOutOfBoundsException e) {
             sender.sendMessage(ChatColor.RED + "指定されたステージ番号はありません");
             return 0;
