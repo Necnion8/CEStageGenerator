@@ -187,7 +187,11 @@ public class MainCommand {
             if (functions != null) {
                 try (SilentCommandSender silentSender = new SilentCommandSender(null)) {
                     for (FunctionWrapper function : functions) {
-                        silentSender.dispatchCommand("execute in " + game.getWorld().getName() + " run function " + function.getKey());
+                        if (world != null) {
+                            silentSender.dispatchCommand("execute in " + game.getWorld().getName() + " run function " + function.getKey());
+                        } else {
+                            silentSender.dispatchCommand("function " + function.getKey());
+                        }
                     }
                 }
             }
@@ -202,7 +206,8 @@ public class MainCommand {
         String entry = (String) args[2];
         FunctionWrapper[] functions = (args.length >= 4) ? (FunctionWrapper[]) args[3] : new FunctionWrapper[0];
 
-        Optional<Integer> score = Optional.ofNullable(Bukkit.getScoreboardManager().getMainScoreboard())
+        Optional<Integer> score = Optional.ofNullable(Bukkit.getScoreboardManager())
+                .map(ScoreboardManager::getMainScoreboard)
                 .map(sb -> sb.getObjective(objective))
                 .map(obj -> obj.getScore(entry))
                 .filter(Score::isScoreSet)
