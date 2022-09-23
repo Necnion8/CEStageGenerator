@@ -78,6 +78,13 @@ public class MainCommand {
                         .withArguments(new ScoreHolderArgument("name", ScoreHolderArgument.ScoreHolderType.SINGLE))
                         .executesNative(this::cmdLoadStageByScore)
                 )
+                .withSubcommand(new CommandAPICommand("loadstagebyscore")
+                        .withArguments(gameArgument)
+                        .withArguments(new ObjectiveArgument("objective"))
+                        .withArguments(new ScoreHolderArgument("name", ScoreHolderArgument.ScoreHolderType.SINGLE))
+                        .withArguments(new FunctionArgument("onload"))
+                        .executesNative(this::cmdLoadStageByScore)
+                )
                 .withSubcommand(new CommandAPICommand("unloadstage")
                         .withArguments(gameArgument)
                         .executesNative(this::cmdUnloadStage)
@@ -202,10 +209,12 @@ public class MainCommand {
         Game game = (Game) args[0];
         String objective = (String) args[1];
         String entry = (String) args[2];
+        FunctionWrapper[] functions = (args.length >= 4) ? (FunctionWrapper[]) args[3] : new FunctionWrapper[0];
 
         Optional<Integer> score = Optional.ofNullable(Bukkit.getScoreboardManager().getMainScoreboard())
                 .map(sb -> sb.getObjective(objective))
                 .map(obj -> obj.getScore(entry))
+                .filter(Score::isScoreSet)
                 .map(Score::getScore);
 
         if (!score.isPresent()) {
@@ -221,7 +230,7 @@ public class MainCommand {
             sender.sendMessage(ChatColor.RED + "指定されたステージ番号はありません");
             return 0;
         }
-        return cmdLoadStage(sender, new Object[] {game, stageName});
+        return cmdLoadStage(sender, new Object[] {game, stageName, functions});
     }
 
     private int cmdUnloadStage(NativeProxyCommandSender sender, Object[] args) {
