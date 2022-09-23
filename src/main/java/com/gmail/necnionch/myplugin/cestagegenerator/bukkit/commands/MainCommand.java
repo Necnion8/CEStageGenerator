@@ -155,11 +155,6 @@ public class MainCommand {
             return 0;
         }
 
-        if (game.isWorldEditing()) {
-            sender.sendMessage(ChatColor.RED + "ゲーム " + game.getName() + " は現在編集モードです");
-            return 0;
-        }
-
         Optional<Score> stateScoreboard = Optional.ofNullable(Bukkit.getScoreboardManager())
                 .map(ScoreboardManager::getMainScoreboard)
                 .map(sb -> Optional.ofNullable(sb.getObjective("CEStageGenerator"))
@@ -240,11 +235,6 @@ public class MainCommand {
         Supplier<Integer> task = () -> {
             boolean unloaded = false;
             if (game.getWorld() != null) {
-                if (game.isWorldEditing()) {
-                    sender.sendMessage(ChatColor.RED + "ゲーム " + game.getName() + " は現在編集モードです");
-                    return 0;
-                }
-
                 game.unloadWorld();
                 try {
                     game.cleanOpenedWorld();

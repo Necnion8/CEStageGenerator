@@ -102,7 +102,6 @@ public class StageListPanel extends Panel {
                                 getPlayer().sendMessage(ChatColor.RED + "ワールドをロードできませんでした");
                                 return;
                             }
-                            game.setWorldEditing(true);
                             long delay = System.currentTimeMillis() - startAt;
 
                             Location loc = world.getSpawnLocation();
@@ -141,7 +140,6 @@ public class StageListPanel extends Panel {
                 Objects.requireNonNull(game.getCurrentStageConfig()).setStageName(name);
                 game.getCurrentStageConfig().save();
 
-                game.setWorldEditing(true);
                 game.stageNames().add(name.toLowerCase(Locale.ROOT));
                 game.saveSettings();
 

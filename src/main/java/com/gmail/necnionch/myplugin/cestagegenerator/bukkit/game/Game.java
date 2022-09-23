@@ -20,7 +20,6 @@ public class Game {
     private GameSetting setting;
     private @Nullable World world;
     private @Nullable StageConfig currentStageConfig;
-    private boolean editing;
 
     public Game(GameManager manager, String name, @Nullable GameSetting setting) {
         name = name.toLowerCase(Locale.ROOT);
@@ -93,17 +92,8 @@ public class Game {
 
     public void unloadWorld() {
         manager.unloadWorld(this);
-        this.editing = false;
         this.world = null;
         this.currentStageConfig = null;
-    }
-
-    public void setWorldEditing(boolean editing) {
-        this.editing = editing;
-    }
-
-    public boolean isWorldEditing() {
-        return editing;
     }
 
     public File getOpenedWorldFolderFile() {
