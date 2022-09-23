@@ -15,9 +15,6 @@ import dev.jorel.commandapi.wrappers.NativeProxyCommandSender;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
 import java.util.Map;
 
@@ -32,14 +29,6 @@ public class MainCommand {
     }
 
     public void registerCommands() {
-        plugin.getServer().getPluginManager().registerEvents(new Listener() {
-            @EventHandler
-            public void onCommand(PlayerCommandPreprocessEvent event) {
-                if (event.getMessage().startsWith("/t"))
-                    cmdEditor(event.getPlayer(), new Object[] {gameManager.getGameByName("uwaaaa")});
-            }
-        }, plugin);
-
         Argument gameArgument = new CustomArgument<>("game", (input) ->
                 gameManager.games().entrySet().stream()
                         .filter(e -> input.equalsIgnoreCase(e.getKey()))
@@ -128,6 +117,9 @@ public class MainCommand {
 
         Game game = (Game) args[0];
         String stageName = (String) args[1];
+
+        if (game.getWorld() != null)  // loaded
+            return 0;
 
         if (!game.stageNames().contains(stageName)) {
             sender.sendMessage(ChatColor.RED + "ステージ " + game.getName() + "/" + stageName + " がありません");

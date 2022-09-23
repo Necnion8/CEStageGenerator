@@ -103,9 +103,11 @@ public class StageListPanel extends Panel {
                                 return;
                             }
                             game.setWorldEditing(true);
+                            long delay = System.currentTimeMillis() - startAt;
+
                             Location loc = world.getSpawnLocation();
                             getPlayer().teleport(loc.add(.5, 0, .5));
-                            getPlayer().sendMessage(ChatColor.WHITE + "完了 (" + (System.currentTimeMillis() - startAt) + "ms)");
+                            getPlayer().sendMessage(ChatColor.WHITE + "完了 (" + delay + "ms)");
 
                             if (Material.AIR.equals(loc.add(0, -1, 0).getBlock().getType())) {
                                 if (GameMode.SURVIVAL.equals(getPlayer().getGameMode()))

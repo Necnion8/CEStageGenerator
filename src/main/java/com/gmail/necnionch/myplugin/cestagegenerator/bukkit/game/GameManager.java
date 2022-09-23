@@ -251,13 +251,16 @@ public class GameManager implements Listener {
                     getLogger().info("World Creating: " + worldFullName);
                 }
 
+                long delay = System.currentTimeMillis();
                 world = WorldCreator
                         .name(worldFullName)
+                        .type(WorldType.FLAT)
                         .generator(new VoidGenerator())
                         .generateStructures(false)
                         .createWorld();
 
-                getLogger().info("World Loaded: " + world.getName());
+                delay = System.currentTimeMillis() - delay;
+                getLogger().info("World Loaded (" + delay + "ms): " + world.getName());
 
                 world.setKeepSpawnInMemory(false);
 //                world.setAutoSave(false);
@@ -311,6 +314,9 @@ public class GameManager implements Listener {
         CompletableFuture<Void> f = new CompletableFuture<>();
         File worldFolder = getOpenedWorldFolderFile(game);
 
+        if (!worldFolder.exists())
+            return CompletableFuture.completedFuture(null);
+
         if (processingFiles.contains(worldFolder.toString()))
             throw new IllegalStateException("Already processing directory");
 
@@ -352,6 +358,10 @@ public class GameManager implements Listener {
                     FileUtils.deleteDirectory(dest);
                 FileUtils.copyDirectory(source, dest);
 
+                File sessionFile = new File(dest, "session.lock");
+                if (sessionFile.isFile())
+                    sessionFile.delete();
+
             } catch (IOException e) {
                 getLogger().severe("Failed to backup '" + source + "' to '" + dest + "': " + e.getMessage());
                 plugin.getServer().getScheduler().runTask(plugin, () -> f.completeExceptionally(e));
@@ -387,7 +397,7 @@ public class GameManager implements Listener {
 
             long delay = System.currentTimeMillis();
             try {
-                if (dest.exists())  // TODO: async deleting
+                if (dest.exists())
                     FileUtils.deleteDirectory(dest);
                 FileUtils.copyDirectory(source, dest);
 
