@@ -230,6 +230,8 @@ public class MainCommand {
 
         Game game = (Game) args[0];
 
+        boolean unloaded = false;
+
         if (game.getWorld() != null) {
             if (game.isWorldEditing()) {
                 sender.sendMessage(ChatColor.RED + "ゲーム " + game.getName() + " は現在編集モードです");
@@ -242,8 +244,17 @@ public class MainCommand {
             } catch (IllegalStateException e) {
                 plugin.getLogger().warning("Failed to clean world: " + e.getMessage());
             }
-            sender.sendMessage(ChatColor.GOLD + "ゲーム " + game.getName() + " ステージをアンロードしました");
+            unloaded = true;
         }
+
+        unloaded = unloaded || Bukkit.getWorlds().stream()
+                .filter(w -> w.getName().startsWith("stgen/"))
+                .peek(w -> Bukkit.unloadWorld(w, true))
+                .count() >= 1;
+
+        if (unloaded)
+            sender.sendMessage(ChatColor.GOLD + "ゲーム " + game.getName() + " ステージをアンロードしました");
+
         return 1;
     }
 
