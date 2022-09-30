@@ -12,6 +12,7 @@ public class GameSetting {
     private final List<String> stageNames;
     private final MaterialList places;
     private final MaterialList breaks;
+    private ExplosionBreakingMode explosionBreakingMode = ExplosionBreakingMode.BREAKABLE;
 
     public GameSetting(List<String> stageNames) {
         this.stageNames = stageNames;
@@ -19,10 +20,11 @@ public class GameSetting {
         this.breaks = new MaterialList(MaterialList.Action.DENY);
     }
 
-    public GameSetting(List<String> stageNames, MaterialList places, MaterialList breaks) {
+    public GameSetting(List<String> stageNames, MaterialList places, MaterialList breaks, ExplosionBreakingMode mode) {
         this.stageNames = stageNames;
         this.places = places;
         this.breaks = breaks;
+        this.explosionBreakingMode = mode;
     }
 
     public GameSetting() {
@@ -41,12 +43,21 @@ public class GameSetting {
         return breaks;
     }
 
+    public ExplosionBreakingMode getExplosionBreakingMode() {
+        return explosionBreakingMode;
+    }
+
+    public void setExplosionBreakingMode(ExplosionBreakingMode mode) {
+        this.explosionBreakingMode = mode;
+    }
+
     public void serialize(ConfigurationSection config) {
         config.set("stages", stageNames);
         config.set("place-types", places.stream().map(Enum::name).collect(Collectors.toList()));
         config.set("place-mode", places.getAction().name().toLowerCase(Locale.ROOT));
         config.set("break-types", breaks.stream().map(Enum::name).collect(Collectors.toList()));
         config.set("break-mode", breaks.getAction().name().toLowerCase(Locale.ROOT));
+        config.set("break-by-explosion", explosionBreakingMode.name().toLowerCase(Locale.ROOT));
     }
 
     public static GameSetting deserialize(ConfigurationSection config) {
@@ -79,7 +90,14 @@ public class GameSetting {
             }
         });
 
-        return new GameSetting(stages, places, breaks);
+        ExplosionBreakingMode mode;
+        try {
+            mode = ExplosionBreakingMode.valueOf(config.getString("break-by-explosion", "").toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            mode = ExplosionBreakingMode.PROTECT;
+        }
+
+        return new GameSetting(stages, places, breaks, mode);
     }
 
 

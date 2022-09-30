@@ -1,5 +1,6 @@
 package com.gmail.necnionch.myplugin.cestagegenerator.bukkit.gui.editors;
 
+import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.game.ExplosionBreakingMode;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.game.Game;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.game.GameSetting;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.game.MaterialList;
@@ -15,6 +16,7 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
@@ -40,8 +42,10 @@ public class GameEditPanel extends Panel {
     public PanelItem[] build() {
         PanelItem[] slots = new PanelItem[getSize()];
 
+        ExplosionBreakingMode mode = getSetting().getExplosionBreakingMode();
         MaterialList breakList = getSetting().getBreaksList();
         MaterialList.Action breakAction = breakList.getAction();
+
         slots[9+2-1] = PanelItem.createItem(Material.AIR, "").setItemBuilder((p) -> {
             String allowable = (MaterialList.Action.ALLOW.equals(breakAction)) ? "破壊可能" : "破壊不可能";
             String label = ChatColor.GOLD + allowable + "ブロック " + ChatColor.GRAY + "- ";
@@ -132,6 +136,22 @@ public class GameEditPanel extends Panel {
                     // open list
                     new StageListPanel(getPlayer(), game).open(this);
                 }
+            }
+        });
+
+        slots[9+8-1] = PanelItem.createItem(Material.AIR, "").setItemBuilder(p ->
+            PanelItem.createItem(Material.TNT, ChatColor.GOLD + "爆破破壊モード: " + ChatColor.YELLOW + mode.getLocalizedName(), Lists.newArrayList(
+                    ChatColor.GRAY + "左クリック: 切り替え"
+            )).getItemStack()
+
+        ).setClickListener((e, p) -> {
+            if (ClickType.LEFT.equals(e.getClick())) {
+                ExplosionBreakingMode[] modes = ExplosionBreakingMode.values();
+                int index = Arrays.asList(modes).indexOf(mode) + 1;
+                if (index >= modes.length)
+                    index = 0;
+                getSetting().setExplosionBreakingMode(modes[index]);
+                this.update();
             }
         });
 

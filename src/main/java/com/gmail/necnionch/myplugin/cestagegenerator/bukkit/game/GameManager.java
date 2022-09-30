@@ -597,10 +597,21 @@ public class GameManager implements Listener {
         event.blockList().removeIf(block -> {
             Game game = worldOfGames.get(block.getWorld().getName());
             if (game != null) {
-                if (!placeData.contains(block.getLocation()))
-                    return true;
+                boolean protect;
+                switch (game.getSetting().getExplosionBreakingMode()) {
+                    case PLACED_ONLY:
+                        protect = !placeData.contains(block.getLocation());
+                        break;
+                    case BREAKABLE:
+                        protect = false;
+                        break;
+                    case PROTECT:
+                    default:
+                        protect = true;
+                        break;
+                }
                 placeData.remove(game.getName(), block.getLocation());
-                // 爆破では isWhitelistedBreak を適用しない
+                return protect;
             }
             return false;
         });
@@ -611,10 +622,21 @@ public class GameManager implements Listener {
         event.blockList().removeIf(block -> {
             Game game = worldOfGames.get(block.getWorld().getName());
             if (game != null) {
-                if (!placeData.contains(block.getLocation()))
-                    return true;
+                boolean protect;
+                switch (game.getSetting().getExplosionBreakingMode()) {
+                    case PLACED_ONLY:
+                        protect = !placeData.contains(block.getLocation());
+                        break;
+                    case BREAKABLE:
+                        protect = false;
+                        break;
+                    case PROTECT:
+                    default:
+                        protect = true;
+                        break;
+                }
                 placeData.remove(game.getName(), block.getLocation());
-                // 爆破では isWhitelistedBreak を適用しない
+                return protect;
             }
             return false;
         });
