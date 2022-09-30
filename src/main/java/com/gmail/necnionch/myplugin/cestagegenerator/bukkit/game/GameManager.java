@@ -597,13 +597,12 @@ public class GameManager implements Listener {
         event.blockList().removeIf(block -> {
             Game game = worldOfGames.get(block.getWorld().getName());
             if (game != null) {
-                if (placeData.contains(block.getLocation())) {
-                    placeData.remove(game.getName(), block.getLocation());
-                    return false;
-                }
+                if (!placeData.contains(block.getLocation()))
+                    return true;
+                placeData.remove(game.getName(), block.getLocation());
                 // 爆破では isWhitelistedBreak を適用しない
             }
-            return true;
+            return false;
         });
     }
 
@@ -612,13 +611,12 @@ public class GameManager implements Listener {
         event.blockList().removeIf(block -> {
             Game game = worldOfGames.get(block.getWorld().getName());
             if (game != null) {
-                if (placeData.contains(block.getLocation())) {
-                    placeData.remove(game.getName(), block.getLocation());
-                    return false;
-                }
+                if (!placeData.contains(block.getLocation()))
+                    return true;
+                placeData.remove(game.getName(), block.getLocation());
                 // 爆破では isWhitelistedBreak を適用しない
             }
-            return true;
+            return false;
         });
     }
 
