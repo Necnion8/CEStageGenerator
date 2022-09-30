@@ -6,6 +6,7 @@ import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.game.GameManager;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.gui.editors.GameEditPanel;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.gui.editors.StageEditPanel;
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.util.SilentCommandSender;
+import com.google.common.collect.Lists;
 import dev.jorel.commandapi.CommandAPI;
 import dev.jorel.commandapi.CommandAPICommand;
 import dev.jorel.commandapi.arguments.*;
@@ -13,13 +14,16 @@ import dev.jorel.commandapi.wrappers.FunctionWrapper;
 import dev.jorel.commandapi.wrappers.NativeProxyCommandSender;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.BlockCommandSender;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Score;
 import org.bukkit.scoreboard.ScoreboardManager;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -98,6 +102,19 @@ public class MainCommand {
                 .withSubcommand(new CommandAPICommand("editor")
                         .withArguments(gameArgument)
                         .executes(this::cmdEditor)
+                )
+                .withSubcommand(new CommandAPICommand("savestage")
+                        .withArguments(gameArgument)
+                        .executes(this::cmdSaveStage)
+                )
+                .withSubcommand(new CommandAPICommand("teleport")
+                        .withArguments(gameArgument)
+                        .executes(this::cmdTeleport)
+                )
+                .withSubcommand(new CommandAPICommand("teleport")
+                        .withArguments(gameArgument)
+                        .withArguments(new EntitySelectorArgument("entities", EntitySelectorArgument.EntitySelector.MANY_ENTITIES))
+                        .executes(this::cmdTeleport)
                 )
                 .register();
     }
@@ -285,6 +302,46 @@ public class MainCommand {
         return 0;
     }
 
+    private int cmdSaveStage(CommandSender sender, Object[] args) {
+        if (!plugin.isEnabled())
+            return 0;
+
+        Game game = (Game) args[0];
+        if (game.getWorld() == null || game.getCurrentStageConfig() == null)
+            return 0;
+
+        String stageName = game.getCurrentStageConfig().getStageName();
+        sender.sendMessage(ChatColor.WHITE + "保存中･･･");
+        game.saveWorld();
+
+        Bukkit.getScheduler().runTaskLater(game.getManager().getPlugin(), () -> {
+            game.backupWorld(stageName).whenComplete((v, ex) -> {
+                if (ex != null) {
+                    sender.sendMessage(ChatColor.RED + "ステージをバックアップできませんでした");
+                } else {
+                    sender.sendMessage(ChatColor.WHITE + "ステージ " + stageName + " を保存しました");
+                }
+            });
+        }, 2);
+
+        return 1;
+    }
+
+    private int cmdTeleport(CommandSender sender, Object[] args){
+        if (!plugin.isEnabled())
+            return 0;
+
+        Game game = (Game) args[0];
+        @SuppressWarnings("unchecked")
+        List<Entity> entities = (args.length >= 2) ? (List<Entity>) args[1] : (sender instanceof Entity) ? Lists.newArrayList((Entity) sender) : null;
+
+        if (game.getWorld() == null || entities == null || entities.isEmpty())
+            return 0;
+
+        Location location = game.getWorld().getSpawnLocation();
+        entities.forEach(e -> e.teleport(location));
+        return entities.size();
+    }
 
     private CompletableFuture<World> loadStage(Game game, String stageName, boolean async) {
         CompletableFuture<World> f;
