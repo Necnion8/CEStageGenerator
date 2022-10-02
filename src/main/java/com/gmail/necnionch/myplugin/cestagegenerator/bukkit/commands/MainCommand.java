@@ -41,24 +41,24 @@ public class MainCommand {
     }
 
     public void registerCommands() {
-        Argument gameArgument = new CustomArgument<>("game", (input) ->
-                gameManager.getGames().entrySet().stream()
-                        .filter(e -> input.equalsIgnoreCase(e.getKey()))
-                        .map(Map.Entry::getValue)
-                        .findFirst()
-                        .orElseThrow(() -> new CustomArgument.CustomArgumentException(new CustomArgument.MessageBuilder("Unknown game: ").appendArgInput()))
-        )
-                .overrideSuggestions((s, a) -> gameManager.getGames().keySet().toArray(new String[0]));
+        Argument<Game> gameArgument = new CustomArgument<>(new StringArgument("game"), info -> {
+            return gameManager.getGames().entrySet().stream()
+                    .filter(e -> info.currentInput().equalsIgnoreCase(e.getKey()))
+                    .map(Map.Entry::getValue)
+                    .findFirst()
+                    .orElseThrow(() -> new CustomArgument.CustomArgumentException(new CustomArgument.MessageBuilder("Unknown game: ").appendArgInput()));
+        }).replaceSuggestions(ArgumentSuggestions.strings(i -> gameManager.getGames().keySet().toArray(new String[0])));
 
-        Argument stageArgument = new StringArgument("stage").overrideSuggestions((sender, args) -> {
+
+        Argument<String> stageArgument = new StringArgument("stage").replaceSuggestions(ArgumentSuggestions.strings(info -> {
             Game game;
             try {
-                game = (Game) args[0];
+                game = (Game) info.previousArgs()[0];
             } catch (IndexOutOfBoundsException | ClassCastException ignored) {
                 return new String[0];
             }
             return game.stageNames().toArray(new String[0]);
-        });
+        }));
 
 
         new CommandAPICommand("cestgen")
@@ -85,13 +85,13 @@ public class MainCommand {
                 .withSubcommand(new CommandAPICommand("loadstagebyscore")
                         .withArguments(gameArgument)
                         .withArguments(new ObjectiveArgument("objective"))
-                        .withArguments(new ScoreHolderArgument("name", ScoreHolderArgument.ScoreHolderType.SINGLE))
+                        .withArguments(new ScoreHolderArgument<String>("name", ScoreHolderArgument.ScoreHolderType.SINGLE))
                         .executesNative(this::cmdLoadStageByScore)
                 )
                 .withSubcommand(new CommandAPICommand("loadstagebyscore")
                         .withArguments(gameArgument)
                         .withArguments(new ObjectiveArgument("objective"))
-                        .withArguments(new ScoreHolderArgument("name", ScoreHolderArgument.ScoreHolderType.SINGLE))
+                        .withArguments(new ScoreHolderArgument<String>("name", ScoreHolderArgument.ScoreHolderType.SINGLE))
                         .withArguments(new FunctionArgument("onload"))
                         .executesNative(this::cmdLoadStageByScore)
                 )
@@ -113,7 +113,7 @@ public class MainCommand {
                 )
                 .withSubcommand(new CommandAPICommand("teleport")
                         .withArguments(gameArgument)
-                        .withArguments(new EntitySelectorArgument("entities", EntitySelectorArgument.EntitySelector.MANY_ENTITIES))
+                        .withArguments(new EntitySelectorArgument<Entity>("entities", EntitySelector.MANY_ENTITIES))
                         .executes(this::cmdTeleport)
                 )
                 .register();

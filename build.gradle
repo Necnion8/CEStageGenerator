@@ -3,7 +3,7 @@ plugins {
 }
 
 group = 'com.gmail.necnionch.myplugin'
-version = '2.1.0-SNAPSHOT'
+version = '2.1.0-SNAPSHOT-1.19'
 
 configurations {
     collectJars
@@ -28,7 +28,7 @@ repositories {
 dependencies {
     implementation 'org.jetbrains:annotations:23.0.0'
     compileOnly 'org.spigotmc:spigot-api:1.14-R0.1-SNAPSHOT'
-    implementation files("libs/CommandAPI.jar")
+    implementation files("libs/CommandAPI-8.5.1.jar")
     implementation files("libs/Citizens-2.0.27-b2302.jar")
 
     // https://mvnrepository.com/artifact/commons-io/commons-io
@@ -40,7 +40,7 @@ dependencies {
 
 }
 
-def targetJavaVersion = 8
+def targetJavaVersion = 17
 java {
     def javaVersion = JavaVersion.toVersion(targetJavaVersion)
     sourceCompatibility = javaVersion
