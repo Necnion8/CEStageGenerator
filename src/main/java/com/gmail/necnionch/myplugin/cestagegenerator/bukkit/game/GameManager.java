@@ -8,7 +8,6 @@ import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.generator.VoidGenera
 import com.gmail.necnionch.myplugin.cestagegenerator.bukkit.hooks.CitizensBridge;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import net.citizensnpcs.api.npc.NPC;
 import org.apache.commons.io.FileUtils;
 import org.bukkit.*;
 import org.bukkit.block.Block;
@@ -290,20 +289,7 @@ public class GameManager implements Listener {
         Optional.ofNullable(game.getWorld()).ifPresent(world -> {
             if (citizens.isAvailable()) {
                 try {
-                    for (NPC npc : citizens.getNPCRegistry()) {
-                        if (!npc.isSpawned())
-                            continue;
-                        try {
-                            Optional.ofNullable(npc.getStoredLocation())
-                                    .map(Location::getWorld)
-                                    .ifPresent(w -> {
-                                        if (world.getName().equals(w.getName()))
-                                            npc.despawn();
-                                    });
-                        } catch (Throwable e) {
-                            e.printStackTrace();
-                        }
-                    }
+                    citizens.despawnNPCInWorld(world);
                 } catch (Throwable e) {
                     e.printStackTrace();
                 }
@@ -493,12 +479,8 @@ public class GameManager implements Listener {
         StageConfig config = new StageConfig(plugin, world.getWorldFolder());
         config.setStageName(stageName);
 
-        if (citizens.isAvailable()) {
-            world.getEntities().stream()
-                    .map(entity -> citizens.getNPCRegistry().getNPC(entity))
-                    .filter(Objects::nonNull)
-                    .forEach(config::addNPC);
-        }
+        if (citizens.isAvailable())
+            citizens.addNPCFromWorldToConfig(world, config);
         config.save();
     }
 
